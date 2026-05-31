@@ -1,5 +1,3 @@
-# frontend/components/panic_button.py
-
 import random
 import streamlit as st
 # Corrección: Ruta absoluta blindada para Streamlit Cloud
@@ -35,12 +33,14 @@ def render_panic_button() -> None:
         for i, idea in enumerate(st.session_state.panic_ideas):
             col_text, col_btn = st.columns([5, 1])
             with col_text:
-                st.markdown(
-                    f'<div class="merlin-card">💡 <b>Idea {i+1}:</b><br>{idea}</div>',
-                    unsafe_allow_html=True,
-                )
+                # Arreglo: Sustitución de div con clase merlin-card por contenedor nativo
+                with st.container(border=True):
+                    st.markdown(f"💡 **Idea {i+1}:**")
+                    st.write(idea)
             with col_btn:
                 st.write("")
+                # Espacio vertical para alinear con el contenedor
+                st.write("") 
                 if st.button(f"Usar #{i+1}", key=f"panic_select_{i}"):
                     st.session_state.selected_panic_prompt = idea
                     st.rerun()
