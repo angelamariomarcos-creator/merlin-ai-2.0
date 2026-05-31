@@ -1,17 +1,26 @@
 # frontend/app.py
 import sys
+import os
 from pathlib import Path
 
-# ── Bootstrap de paths ────────────────────────────────────
-# Garantiza que Python encuentre los módulos de frontend/
-# y backend/ independientemente de desde dónde se ejecute.
-_ROOT    = Path(__file__).parent.parent   # C:/merlin-ai-2.0
-_FRONT   = Path(__file__).parent          # C:/merlin-ai-2.0/frontend
+# ── Bootstrap blindado para Streamlit Cloud ───────────────
+# Obliga al sistema operativo del servidor a recordar las rutas de las carpetas
+_FRONT   = Path(__file__).resolve().parent
+_ROOT    = _FRONT.parent
 _BACKEND = _ROOT / "backend"
 
-for _p in [str(_ROOT), str(_FRONT), str(_BACKEND)]:
+# Forzar inserción al principio del path de Python en cada arranque
+for _p in [str(_FRONT), str(_ROOT), str(_BACKEND)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
+
+# Forzar también vía variable de entorno (Streamlit Cloud lo respeta estrictamente)
+os.environ["PYTHONPATH"] = os.pathsep.join([
+    str(_FRONT),
+    str(_ROOT),
+    str(_BACKEND),
+    os.environ.get("PYTHONPATH", ""),
+])
 # ─────────────────────────────────────────────────────────
 
 import streamlit as st
