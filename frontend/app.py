@@ -4,17 +4,14 @@ import os
 from pathlib import Path
 
 # ── Bootstrap blindado para Streamlit Cloud ───────────────
-# Obliga al sistema operativo del servidor a recordar las rutas de las carpetas
 _FRONT   = Path(__file__).resolve().parent
 _ROOT    = _FRONT.parent
 _BACKEND = _ROOT / "backend"
 
-# Forzar inserción al principio del path de Python en cada arranque
 for _p in [str(_FRONT), str(_ROOT), str(_BACKEND)]:
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-# Forzar también vía variable de entorno (Streamlit Cloud lo respeta estrictamente)
 os.environ["PYTHONPATH"] = os.pathsep.join([
     str(_FRONT),
     str(_ROOT),
@@ -24,13 +21,15 @@ os.environ["PYTHONPATH"] = os.pathsep.join([
 # ─────────────────────────────────────────────────────────
 
 import streamlit as st
-from config.styles import STYLES
-from config.views import VIEWS
-from core.css_engine import inject_css
-from core.session import init_session
-from components.sidebar import render_sidebar
-from core.registry import VIEWS_REGISTRY
-from core.persistence import guardar_estado_local, resetear_estado_local
+
+# IMPORTS RELATIVOS EXPLICITOS (Solución antibloqueo de Streamlit Cloud)
+from .config.styles import STYLES
+from .config.views import VIEWS
+from .core.css_engine import inject_css
+from .core.session import init_session
+from .components.sidebar import render_sidebar
+from .core.registry import VIEWS_REGISTRY
+from .core.persistence import guardar_estado_local, resetear_estado_local
 
 # 1. Configuración de la ventana del navegador
 st.set_page_config(page_title="Merlín AI 2.0", page_icon="🔮", layout="wide")
