@@ -1,4 +1,18 @@
 # frontend/app.py
+import sys
+from pathlib import Path
+
+# ── Bootstrap de paths ────────────────────────────────────
+# Garantiza que Python encuentre los módulos de frontend/
+# y backend/ independientemente de desde dónde se ejecute.
+_ROOT    = Path(__file__).parent.parent   # C:/merlin-ai-2.0
+_FRONT   = Path(__file__).parent          # C:/merlin-ai-2.0/frontend
+_BACKEND = _ROOT / "backend"
+
+for _p in [str(_ROOT), str(_FRONT), str(_BACKEND)]:
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
+# ─────────────────────────────────────────────────────────
 
 import streamlit as st
 from config.styles import STYLES
