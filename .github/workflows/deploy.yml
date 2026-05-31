@@ -75,6 +75,7 @@ jobs:
 
       - name: Validar JSON de prompts
         run: |
+          python - <<'EOF'
           import json
           from pathlib import Path
           files = [
