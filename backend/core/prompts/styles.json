@@ -1,0 +1,96 @@
+{
+  "version": "1.0.0",
+  "description": "Estilos artísticos y visuales con modificadores de prompt optimizados para FLUX Dev",
+  "styles": [
+    {
+      "id": "sty_01",
+      "name": "Hyperrealism",
+      "label_es": "Hiperrealismo",
+      "prompt_fragment": "hyperrealistic, photorealistic render, ultra-detailed, 8K resolution, lifelike textures, physically accurate lighting, indistinguishable from photography"
+    },
+    {
+      "id": "sty_02",
+      "name": "Cyberpunk",
+      "label_es": "Cyberpunk",
+      "prompt_fragment": "cyberpunk aesthetic, neon-lit rain-soaked streets, dystopian megacity, glowing holographic signs, tech-noir atmosphere, cyan and magenta color grading"
+    },
+    {
+      "id": "sty_03",
+      "name": "Dark Fantasy",
+      "label_es": "Fantasía oscura",
+      "prompt_fragment": "dark fantasy art, gothic atmosphere, dramatic chiaroscuro lighting, ominous mood, intricate arcane details, painterly texture, deep shadows"
+    },
+    {
+      "id": "sty_04",
+      "name": "Pixar Style",
+      "label_es": "Estilo Pixar",
+      "prompt_fragment": "Pixar-style 3D render, soft subsurface scattering, expressive stylized characters, warm color palette, smooth rounded forms, cinematic animated look"
+    },
+    {
+      "id": "sty_05",
+      "name": "Synthwave",
+      "label_es": "Synthwave",
+      "prompt_fragment": "synthwave retro-futuristic aesthetic, purple and pink neon glow, chrome grid landscape, 80s sci-fi nostalgia, laser beams, sunset gradient horizon"
+    },
+    {
+      "id": "sty_06",
+      "name": "Comic Book",
+      "label_es": "Cómic",
+      "prompt_fragment": "comic book art style, bold ink outlines, Ben-Day dots, flat cel shading, dynamic action lines, vibrant primary colors, Marvel or DC illustration style"
+    },
+    {
+      "id": "sty_07",
+      "name": "Studio Ghibli",
+      "label_es": "Estilo Ghibli",
+      "prompt_fragment": "Studio Ghibli inspired, hand-painted watercolor backgrounds, soft anime aesthetics, lush natural environments, whimsical atmosphere, warm pastel tones"
+    },
+    {
+      "id": "sty_08",
+      "name": "Watercolor",
+      "label_es": "Acuarela",
+      "prompt_fragment": "watercolor painting, soft wet-on-wet blending, visible paper texture, translucent washes, delicate brushstrokes, loose impressionistic style"
+    },
+    {
+      "id": "sty_09",
+      "name": "Oil Painting",
+      "label_es": "Óleo clásico",
+      "prompt_fragment": "classical oil painting, old master technique, rich impasto texture, glazed luminous colors, Renaissance or Baroque style, museum-quality fine art"
+    },
+    {
+      "id": "sty_10",
+      "name": "Flat Design",
+      "label_es": "Diseño plano",
+      "prompt_fragment": "flat design illustration, minimal geometric shapes, clean solid colors, no gradients or shadows, modern UI aesthetic, vector art style"
+    },
+    {
+      "id": "sty_11",
+      "name": "Steampunk",
+      "label_es": "Steampunk",
+      "prompt_fragment": "steampunk aesthetic, Victorian industrial machinery, brass and copper tones, clockwork gears, steam-powered devices, sepia-tinted atmosphere, retrofuturistic engineering"
+    },
+    {
+      "id": "sty_12",
+      "name": "Low Poly",
+      "label_es": "Low Poly 3D",
+      "prompt_fragment": "low poly 3D art, geometric faceted surfaces, minimalist polygon mesh, flat shaded triangles, clean pastel color blocks, abstract digital sculpture"
+    },
+    {
+      "id": "sty_13",
+      "name": "Noir",
+      "label_es": "Noir cinematográfico",
+      "prompt_fragment": "film noir style, high contrast black and white, dramatic hard shadows, venetian blind light patterns, moody atmospheric fog, 1940s detective aesthetic"
+    },
+    {
+      "id": "sty_14",
+      "name": "Ukiyo-e",
+      "label_es": "Grabado japonés Ukiyo-e",
+      "prompt_fragment": "ukiyo-e Japanese woodblock print, flat bold outlines, limited color palette, decorative patterns, traditional Edo period aesthetic, Hokusai or Hiroshige inspired"
+    },
+    {
+      "id": "sty_15",
+      "name": "Glitchcore",
+      "label_es": "Glitchcore digital",
+      "prompt_fragment": "glitchcore digital art, RGB channel displacement, pixel corruption artifacts, data moshing effect, chromatic aberration, fragmented scan lines, digital decay aesthetic"
+    }
+  ]
+}

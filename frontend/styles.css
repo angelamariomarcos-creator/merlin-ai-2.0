@@ -1,0 +1,40 @@
+/* frontend/styles.css */
+/* Variables inyectadas en runtime por css_engine.py */
+.stApp {
+    background-color: {{BG}};
+    color: {{TEXT}};
+}
+.merlin-sidebar {
+    background-color: {{SIDEBAR}};
+}
+h1, h2, h3 {
+    color: {{ACCENT}} !important;
+    font-family: 'Segoe UI', sans-serif;
+}
+.merlin-card {
+    background-color: {{SIDEBAR}};
+    border: 1px solid {{ACCENT}}55;
+    border-radius: 10px;
+    padding: 14px 18px;
+    margin-bottom: 10px;
+}
+.merlin-metric {
+    background-color: {{SIDEBAR}};
+    border: 1px solid {{ACCENT}}33;
+    border-radius: 8px;
+    padding: 12px;
+}
+.merlin-label {
+    color: {{ACCENT}};
+    font-weight: 600;
+}
+.merlin-caption {
+    color: {{TEXT}}99;
+    font-size: 0.82rem;
+}
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: {{BG}}; }
+::-webkit-scrollbar-thumb {
+    background: {{ACCENT}}66;
+    border-radius: 3px;
+}

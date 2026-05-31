@@ -1,0 +1,25 @@
+# frontend/core/registry.py
+from views import (
+    dashboard, image_generator, video_gateway, upscaler,
+    market_intel, linkedin_writer, thresholds, infra_monitor,
+    billing, history, agents_manager, pixar_gallery,
+    prompt_optimizer, logs, settings,
+)
+
+VIEWS_REGISTRY: dict[str, callable] = {
+    "🛸 Dashboard General":                    dashboard.render,
+    "🎨 Generador de Imágenes (Flux)":         image_generator.render,
+    "🎬 Pasarela de Video AI":                 video_gateway.render,
+    "🔍 Reescalado 4K Nativo (FAL.AI)":        upscaler.render,
+    "📈 Inteligencia de Mercado (Perplexity)":  market_intel.render,
+    "✍️ Redactor LinkedIn (Claude)":            linkedin_writer.render,
+    "⚙️ Configuración de Umbrales":             thresholds.render,
+    "🛡️ Monitor de Infraestructura":            infra_monitor.render,
+    "💰 Control de Costes y Márgenes":          billing.render,
+    "📂 Historial de Generaciones":             history.render,
+    "🤖 Gestión de Agentes Orquestadores":      agents_manager.render,
+    "🎭 Galería de Estilos Pixar":              pixar_gallery.render,
+    "⚡ Optimización de Prompts":               prompt_optimizer.render,
+    "📬 Logs del Sistema en Vivo":              logs.render,
+    "🔮 Configuración de Merlín AI":            settings.render,
+}

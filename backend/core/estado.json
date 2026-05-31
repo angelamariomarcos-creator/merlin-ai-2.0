@@ -1,0 +1,47 @@
+﻿{
+  "session": {
+    "id": "merlin-ai-2.0-session-001",
+    "fecha_inicio": "2026-05-28",
+    "fase_actual": "FASE_1",
+    "tarea_actual": "Configurar variables de entorno y seguridad",
+    "estado": "PROCESANDO",
+    "entorno": "Windows",
+    "version_proyecto": "2.0.0"
+  },
+  "memory": {
+    "entorno": {
+      "sistema_operative": "Windows",
+      "ruta_raiz": "C:/merlin-ai-2.0"
+    },
+    "arbol_directorios": {
+      "backend": {
+        "config": {},
+        "agents": {},
+        "core": {}
+      },
+      "docs": {},
+      "scripts": {}
+    },
+    "archivos_generados": [
+      "backend/core/estado.json"
+    ]
+  },
+  "billing": {
+    "presupuesto_total_usd": null,
+    "gasto_acumulado_usd": 0.00,
+    "llamadas_api_totales": 0,
+    "ultimo_ciclo_facturacion": null,
+    "alertas": []
+  },
+  "queue": {
+    "tareas_pendientes": [
+      "1.3 Configurar .env.example y .gitignore",
+      "1.4 Validar Pydantic Settings"
+    ],
+    "tarea_en_curso": "FASE_1 - Estructura base e historial",
+    "tareas_completadas": [
+      "Confirmación árbol de directorios físico",
+      "Generación backend/core/estado.json"
+    ]
+  }
+}

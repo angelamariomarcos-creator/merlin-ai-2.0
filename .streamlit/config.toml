@@ -1,0 +1,13 @@
+# .streamlit/config.toml
+# Necesario para que Streamlit Community Cloud arranque desde la ruta correcta
+
+[server]
+headless = true
+port = 8501
+enableCORS = false
+
+[browser]
+gatherUsageStats = false
+
+[runner]
+magicEnabled = false

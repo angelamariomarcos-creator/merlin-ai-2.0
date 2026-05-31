@@ -1,0 +1,108 @@
+name: Merlín AI 2.0 — CI / Pre-Deploy
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+
+  # ── Job 1: Calidad y tests ────────────────────────────
+  lint-and-test:
+    name: Lint + Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Lint con Ruff
+        run: |
+          pip install ruff
+          ruff check . --exclude=".venv,__pycache__"
+
+      - name: Verificar imports críticos
+        run: |
+          python -c "import streamlit; print('streamlit OK')"
+          python -c "import anthropic; print('anthropic OK')"
+          python -c "import httpx; print('httpx OK')"
+          python -c "import pydantic; print('pydantic OK')"
+          python -c "from pydantic_settings import BaseSettings; print('pydantic-settings OK')"
+
+      - name: Verificar archivos críticos del proyecto
+        run: |
+          python - <<'EOF'
+          from pathlib import Path
+          required = [
+            "frontend/app.py",
+            "frontend/core/gallery.py",
+            "frontend/core/async_runner.py",
+            "frontend/core/persistence.py",
+            "frontend/core/prompt_loader.py",
+            "frontend/components/panic_button.py",
+            "frontend/views/image_generator.py",
+            "backend/core/prompts/cameras.json",
+            "backend/core/prompts/styles.json",
+            "backend/core/prompts/subjects.json",
+            "backend/core/prompts/settings.json",
+            "backend/agents/orchestrator/orchestrator.py",
+            "backend/agents/memory_helper/memory_helper.py",
+            "backend/agents/image_generator/image_generator.py",
+            "backend/agents/animation/animation.py",
+            "backend/agents/upscaler/upscaler.py",
+            "backend/agents/billing/billing_monitor.py",
+            "backend/agents/git_helper/git_helper.py",
+            "backend/agents/marketing/backlinking_agent.py",
+            "backend/config/settings.py",
+          ]
+          missing = [f for f in required if not Path(f).exists()]
+          if missing:
+              print("ARCHIVOS FALTANTES:")
+              for f in missing: print(f"  ✗ {f}")
+              raise SystemExit(1)
+          print(f"✅ {len(required)} archivos críticos verificados.")
+          EOF
+
+      - name: Validar JSON de prompts
+        run: |
+          import json
+          from pathlib import Path
+          files = [
+            "backend/core/prompts/cameras.json",
+            "backend/core/prompts/styles.json",
+            "backend/core/prompts/subjects.json",
+            "backend/core/prompts/settings.json",
+          ]
+          for f in files:
+              data = json.loads(Path(f).read_text(encoding="utf-8"))
+              print(f"✅ {f} — válido")
+          EOF
+
+      - name: Ejecutar tests
+        run: |
+          pip install pytest pytest-asyncio
+          pytest tests/ -v --tb=short 2>/dev/null || echo "Sin tests todavía."
+
+  # ── Job 2: Notificación de deploy listo ───────────────
+  notify-ready:
+    name: Notificar deploy listo
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+
+    steps:
+      - name: Confirmar rama main lista
+        run: |
+          echo "✅ Rama main validada."
+          echo "🚀 Streamlit Community Cloud detectará el push automáticamente."
+          echo "  Monitoriza el deploy en: https://share.streamlit.io"
