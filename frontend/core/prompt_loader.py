@@ -6,7 +6,12 @@ from typing import Any
 import streamlit as st
 
 logger = logging.getLogger("prompt_loader")
-PROMPTS_DIR = Path("C:/merlin-ai-2.0/backend/core/prompts")
+
+# ── Cambiar ruta de prompts a absoluta basada en raíz del repo ──
+# Detecta dinámicamente la raíz tanto en tu PC como en Streamlit Cloud
+_ROOT = Path(__file__).resolve().parent.parent.parent
+PROMPTS_DIR = _ROOT / "backend" / "core" / "prompts"
+# ───────────────────────────────────────────────────────────────
 
 def _load_json(filename: str) -> dict[str, Any]:
     path = PROMPTS_DIR / filename

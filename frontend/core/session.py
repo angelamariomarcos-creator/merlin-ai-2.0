@@ -1,7 +1,8 @@
 # frontend/core/session.py
 
 import streamlit as st
-from core.persistence import cargar_estado_local
+# Corrección de ruta absoluta para Streamlit Cloud
+from frontend.core.persistence import cargar_estado_local
 
 _SESSION_INITIALIZED_KEY = "_merlin_session_ready"
 

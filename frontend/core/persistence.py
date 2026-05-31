@@ -10,9 +10,11 @@ import streamlit as st
 
 logger = logging.getLogger("persistence")
 
-# ── Ruta dinámica y portable (Raíz del proyecto) ──────────
-ROOT_DIR = Path(__file__).resolve().parents[2]
-PERSISTENCE_PATH = ROOT_DIR / "backend" / "core" / "estado.json"
+# ── Ruta dinámica y portable blindada (Raíz del proyecto) ──
+# Mantiene la coherencia exacta con la estructura aplicada por Claude
+_ROOT = Path(__file__).resolve().parent.parent.parent
+PERSISTENCE_PATH = _ROOT / "backend" / "core" / "estado.json"
+# ──────────────────────────────────────────────────────────
 
 # ── Claves planas: coinciden exactamente con key= de cada widget ──
 PERSISTIBLE_KEYS: dict[str, Any] = {

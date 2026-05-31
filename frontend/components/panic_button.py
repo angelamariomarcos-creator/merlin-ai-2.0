@@ -2,7 +2,8 @@
 
 import random
 import streamlit as st
-from core.prompt_loader import load_panic_pools
+# Corrección: Ruta absoluta blindada para Streamlit Cloud
+from frontend.core.prompt_loader import load_panic_pools
 
 
 def _generate_ideas(pools: dict[str, list[str]], n: int = 3) -> list[str]:

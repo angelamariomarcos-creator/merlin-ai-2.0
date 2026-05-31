@@ -101,22 +101,8 @@ def save_to_gallery(
 ) -> GalleryRecord | None:
     """
     Valida la entrada con GalleryEntry (Pydantic),
-    construye un GalleryRecord inmutable y lo añade
+    construes un GalleryRecord inmutable y lo añade
     al frente de st.session_state.galeria.
-
-    Modos de uso:
-    ─────────────────────────────────────────────────────
-    # Modo demo (placeholder fijo, no cambia en reruns):
-    save_to_gallery(prompt="...", style="...", agent="demo", is_demo=True)
-
-    # Modo real con URL de FAL.AI / CDN:
-    save_to_gallery(prompt="...", style="...", agent="image-generator",
-                    url="https://fal.media/files/...")
-
-    # Modo real con bytes locales (futuro: descarga directa):
-    save_to_gallery(prompt="...", style="...", agent="image-generator",
-                    image_bytes=response_bytes)
-    ─────────────────────────────────────────────────────
     """
     # 1. Validar esquema de entrada
     try:
@@ -164,7 +150,6 @@ def save_to_gallery(
     )
 
     # 4. Guardar bytes por separado en session_state si existen
-    # (no serializable a JSON, solo vive en memoria de sesión)
     if entry.image_bytes is not None:
         if "galeria_bytes" not in st.session_state:
             st.session_state.galeria_bytes = {}

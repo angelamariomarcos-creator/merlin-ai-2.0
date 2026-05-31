@@ -1,35 +1,22 @@
 # frontend/app.py
 import sys
-import os
 from pathlib import Path
 
-# ── Bootstrap blindado para Streamlit Cloud ───────────────
-_FRONT   = Path(__file__).resolve().parent
-_ROOT    = _FRONT.parent
-_BACKEND = _ROOT / "backend"
-
-for _p in [str(_FRONT), str(_ROOT), str(_BACKEND)]:
-    if _p not in sys.path:
-        sys.path.insert(0, _p)
-
-os.environ["PYTHONPATH"] = os.pathsep.join([
-    str(_FRONT),
-    str(_ROOT),
-    str(_BACKEND),
-    os.environ.get("PYTHONPATH", ""),
-])
+# ── Streamlit Cloud CWD: /mount/src/merlin-ai-2.0/ ───────
+# Añadimos la raíz del repo al path. Desde ahí todos los
+# imports usan rutas absolutas completas sin puntos relativos.
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
 # ─────────────────────────────────────────────────────────
 
 import streamlit as st
-
-# IMPORTS RELATIVOS EXPLICITOS (Solución antibloqueo de Streamlit Cloud)
-from .config.styles import STYLES
-from .config.views import VIEWS
-from .core.css_engine import inject_css
-from .core.session import init_session
-from .components.sidebar import render_sidebar
-from .core.registry import VIEWS_REGISTRY
-from .core.persistence import guardar_estado_local, resetear_estado_local
+from frontend.config.styles      import STYLES
+from frontend.config.views       import VIEWS
+from frontend.core.css_engine    import inject_css
+from frontend.core.session       import init_session
+from frontend.core.persistence   import guardar_estado_local, resetear_estado_local
+from frontend.components.sidebar import render_sidebar
 
 # 1. Configuración de la ventana del navegador
 st.set_page_config(page_title="Merlín AI 2.0", page_icon="🔮", layout="wide")
@@ -56,6 +43,7 @@ with st.sidebar:
         st.rerun()
 
 # 6. Renderizado de la vista activa mediante el Registro Centralizado
+from frontend.core.registry import VIEWS_REGISTRY
 view_fn = VIEWS_REGISTRY.get(selected_view)
 if view_fn:
     view_fn()
