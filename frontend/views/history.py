@@ -1,4 +1,3 @@
-# frontend/views/history.py
 import streamlit as st
 from core.gallery import render_gallery_image, clear_gallery, get_gallery_count
 
@@ -24,15 +23,15 @@ def render() -> None:
         cols = st.columns(cols_per_row)
         for col, record in zip(cols, galeria[i:i + cols_per_row]):
             with col:
+                # Renderizamos la imagen primero
                 render_gallery_image(record)
-                st.markdown(
-                    f'<div class="gallery-card">'
-                    f'<b>🆔</b> {record["entry_id"]}<br>'
-                    f'<b>🎨</b> {record["style"]}<br>'
-                    f'<b>🤖</b> {record["agent"]}<br>'
-                    f'<b>🕐</b> {record["timestamp"]}<br>'
-                    f'<b>📝</b> {record["prompt"][:80]}'
-                    f'{"..." if len(record["prompt"]) > 80 else ""}'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
+                
+                # Sustitución de div con clase gallery-card por contenedor nativo
+                with st.container(border=True):
+                    st.write(f"🆔 **ID:** {record['entry_id']}")
+                    st.write(f"🎨 **Estilo:** {record['style']}")
+                    st.write(f"🤖 **Agente:** {record['agent']}")
+                    st.caption(f"🕐 {record['timestamp']}")
+                    st.divider()
+                    st.caption("📝 **Prompt:**")
+                    st.write(f"{record['prompt'][:80]}{'...' if len(record['prompt']) > 80 else ''}")
