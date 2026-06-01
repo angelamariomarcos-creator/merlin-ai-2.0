@@ -19,7 +19,7 @@ def _generate_ideas(pools: dict[str, list[str]], n: int = 3) -> list[str]:
 
 
 def render_panic_button() -> None:
-    st.markdown("### 🎲 Botón de Pánico Creativo")
+   st.subheader("🎲 Botón de Pánico Creativo")
     st.caption("¿Sin inspiración? Genera 3 combinaciones premium al azar.")
 
     pools = load_panic_pools()
@@ -29,13 +29,13 @@ def render_panic_button() -> None:
         st.session_state.selected_panic_prompt = ""
 
     if st.session_state.get("panic_ideas"):
-        st.markdown("**Elige una idea para usarla como prompt:**")
+        st.write("**Elige una idea para usarla como prompt:**")
         for i, idea in enumerate(st.session_state.panic_ideas):
             col_text, col_btn = st.columns([5, 1])
             with col_text:
                 # Arreglo: Sustitución de div con clase merlin-card por contenedor nativo
                 with st.container(border=True):
-                    st.markdown(f"💡 **Idea {i+1}:**")
+                   st.info(f"💡 **Idea {i+1}:** {idea}")
                     st.write(idea)
             with col_btn:
                 st.write("")

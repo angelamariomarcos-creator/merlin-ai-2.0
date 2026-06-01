@@ -217,7 +217,8 @@ def _render_result_feedback(result: RunnerResult, agent: str) -> None:
             icon="⏱️",
         )
         with st.expander("ℹ️ ¿Qué puedes hacer?"):
-            st.markdown(
+                      st.info(...)
+
                 f"- Reintenta en unos segundos.\n"
                 f"- Reduce `inference_steps` o la resolución.\n"
                 f"- Verifica que `FAL_KEY` sea válida en `.env`.\n"

@@ -32,5 +32,5 @@ def render() -> None:
         )
 
         if result.success and result.data:
-            st.markdown("### 📊 Tendencia detectada")
+            st.mst.subheader("📊 Tendencia detectada")
             st.info(result.data.get("trend_summary", ""))

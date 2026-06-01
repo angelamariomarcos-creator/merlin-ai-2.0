@@ -13,7 +13,7 @@ def render() -> None:
     st.divider()
 
     # ── Formulario de generación ──────────────────────────
-    st.markdown("### ⚙️ Configurar generación")
+    st.subheader("⚙️ Configurar generación")
     pools = load_panic_pools()
     
     camera_labels  = ["— Selecciona —"] + [
@@ -134,7 +134,7 @@ def render() -> None:
     galeria = st.session_state.get("galeria", [])
     if galeria:
         st.divider()
-        st.markdown("### 🖼️ Últimas generaciones")
+       st.subheader("🖼️ Últimas generaciones")
         recent = galeria[:3]
         cols   = st.columns(len(recent))
         for col, record in zip(cols, recent):
