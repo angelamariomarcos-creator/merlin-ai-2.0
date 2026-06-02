@@ -21,12 +21,7 @@ PyGithub==2.6.1
 
 # ── Utilidades estándar ───────────────────────────────────
 python-dateutil==2.9.0
-uuid==1.30
 
-# ── Servidor ASGI/WSGI (backend FastAPI futuro) ───────────
+# ── Servidor ASGI/WSGI ────────────────────────────────────
 fastapi==0.115.12
-uvicorn[standard]==0.34.2
-
-# ── Testing ───────────────────────────────────────────────
-pytest==8.3.5
-pytest-asyncio==0.26.0
+uvicorn==0.34.2
