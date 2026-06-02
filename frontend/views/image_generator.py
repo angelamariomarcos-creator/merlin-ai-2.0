@@ -130,17 +130,16 @@ def render() -> None:
                     icon="💾",
                 )
 
-    # ── Vista previa de galería reciente ──────────────────
+# ── Vista previa de galería reciente ──────────────────
     galeria = st.session_state.get("galeria", [])
     if galeria:
         st.divider()
-       st.subheader("🖼️ Últimas generaciones")
+        st.subheader("🖼️ Últimas generaciones")
         recent = galeria[:3]
         cols   = st.columns(len(recent))
         for col, record in zip(cols, recent):
             with col:
-                from core.gallery import render_gallery_image
-                render_gallery_image(record)
+                from core.gallery import render_gallery_image                render_gallery_image(record)
                 st.caption(
                     f"{record.get('entry_id', '—')} · "
                     f"{record.get('timestamp', '—')}"
