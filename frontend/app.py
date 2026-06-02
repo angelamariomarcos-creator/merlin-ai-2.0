@@ -1,3 +1,23 @@
+import traceback
+import streamlit as st
+
+failed = []
+views = ['dashboard','image_generator','video_gateway','upscaler',
+         'market_intel','linkedin_writer','thresholds','infra_monitor',
+         'billing','history','agents_manager','pixar_gallery',
+         'prompt_optimizer','logs','settings']
+
+for v in views:
+    try:
+        m = __import__(f'frontend.views.{v}', fromlist=[v])
+        assert hasattr(m, 'render')
+    except Exception as e:
+        failed.append(f"{v}: {e}")
+
+if failed:
+    for f in failed:
+        st.error(f)
+    st.stop()
 # frontend/app.py
 
 import sys
