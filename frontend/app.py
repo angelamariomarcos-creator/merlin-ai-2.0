@@ -23,7 +23,7 @@ from frontend.core.registry       import dispatch
 from frontend.components.sidebar  import render_sidebar
 
 # ── Configuración de página ────────────────────────────────
-from frontend.config.styles import STYLES
+st.set_page_config(
     page_title="Merlín AI 2.0",
     page_icon="🔮",
     layout="wide",
