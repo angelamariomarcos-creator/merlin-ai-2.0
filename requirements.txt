@@ -1,27 +1,11 @@
-# ── Framework web ─────────────────────────────────────────
 streamlit==1.45.1
-
-# ── HTTP asíncrono y síncrono ─────────────────────────────
 httpx==0.28.1
 requests==2.32.3
-
-# ── Validación y settings ─────────────────────────────────
-pydantic==2.11.4
-pydantic-settings==2.9.1
-
-# ── Variables de entorno ──────────────────────────────────
+pydantic==2.10.6
+pydantic-settings==2.7.1
 python-dotenv==1.1.0
-
-# ── APIs externas ─────────────────────────────────────────
 anthropic==0.52.0
-google-generativeai==0.8.5
-
-# ── GitHub API ────────────────────────────────────────────
 PyGithub==2.6.1
-
-# ── Utilidades estándar ───────────────────────────────────
 python-dateutil==2.9.0
-
-# ── Servidor ASGI/WSGI ────────────────────────────────────
 fastapi==0.115.12
 uvicorn==0.34.2
