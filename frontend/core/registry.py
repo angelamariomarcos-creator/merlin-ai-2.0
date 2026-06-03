@@ -1,47 +1,25 @@
 # frontend/core/registry.py
-
 import streamlit as st
-
 from frontend.views import (
-    dashboard,
-    image_generator,
-    video_gateway,
-    upscaler,
-    market_intel,
-    linkedin_writer,
-    thresholds,
-    infra_monitor,
-    billing,
-    history,
-    agents_manager,
-    pixar_gallery,
-    prompt_optimizer,
-    logs,
-    settings,
+    dashboard, image_generator, video_gateway, upscaler,
+    market_intel, linkedin_writer, billing, history, settings,
 )
 
-VIEWS_REGISTRY: dict[str, callable] = {
-    "🛸 Dashboard General":                    dashboard.render,
-    "🎨 Generador de Imágenes (Flux)":         image_generator.render,
-    "🎬 Pasarela de Video AI":                 video_gateway.render,
-    "🔍 Reescalado 4K Nativo (FAL.AI)":        upscaler.render,
-    "📈 Inteligencia de Mercado (Perplexity)":  market_intel.render,
-    "✍️ Redactor LinkedIn (Claude)":            linkedin_writer.render,
-    "⚙️ Configuración de Umbrales":             thresholds.render,
-    "🛡️ Monitor de Infraestructura":            infra_monitor.render,
-    "💰 Control de Costes y Márgenes":          billing.render,
-    "📂 Historial de Generaciones":             history.render,
-    "🤖 Gestión de Agentes Orquestadores":      agents_manager.render,
-    "🎭 Galería de Estilos Pixar":              pixar_gallery.render,
-    "⚡ Optimización de Prompts":               prompt_optimizer.render,
-    "📬 Logs del Sistema en Vivo":              logs.render,
-    "🔮 Configuración de Merlín AI":            settings.render,
+REGISTRY = {
+    "🛸 Dashboard":              dashboard.render,
+    "🎨 Generador de Imagenes":  image_generator.render,
+    "🎬 Video AI":               video_gateway.render,
+    "🔍 Reescalado 4K":          upscaler.render,
+    "📈 Inteligencia de Mercado": market_intel.render,
+    "✍️ Redactor LinkedIn":       linkedin_writer.render,
+    "💰 Control de Costes":      billing.render,
+    "📂 Historial":              history.render,
+    "⚙️ Configuracion":          settings.render,
 }
 
-
-def dispatch(selected_view: str) -> None:
-    render_fn = VIEWS_REGISTRY.get(selected_view)
-    if render_fn:
-        render_fn()
+def dispatch(view: str) -> None:
+    fn = REGISTRY.get(view)
+    if fn:
+        fn()
     else:
-        st.error(f"Vista '{selected_view}' no registrada en VIEWS_REGISTRY.")
+        st.error(f"Vista no encontrada: {view}")

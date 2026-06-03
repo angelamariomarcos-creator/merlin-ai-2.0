@@ -1,5 +1,4 @@
 # frontend/app.py
-
 import sys
 from pathlib import Path
 
@@ -8,17 +7,14 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import streamlit as st
-
-from frontend.config.styles      import STYLES
-from frontend.config.views       import VIEWS
-from frontend.core.css_engine    import inject_css
-from frontend.core.session       import init_session
-from frontend.core.persistence   import guardar_estado_local, resetear_estado_local
-from frontend.core.registry      import dispatch
-from frontend.components.sidebar import render_sidebar
+from frontend.config.themes import THEMES
+from frontend.config.views import VIEWS
+from frontend.core.session import init_session
+from frontend.core.css_engine import inject_css
+from frontend.core.registry import dispatch
 
 st.set_page_config(
-    page_title="Merlín AI 2.0",
+    page_title="Merlin AI 2.0",
     page_icon="🔮",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -26,20 +22,17 @@ st.set_page_config(
 
 init_session()
 
-selected_style, selected_view = render_sidebar(STYLES, VIEWS)
-
-inject_css(**STYLES[selected_style])
-
 with st.sidebar:
+    st.title("🔮 Merlin AI 2.0")
     st.divider()
-    if st.button("💾 Guardar sesión", use_container_width=True):
-        ok = guardar_estado_local()
-        st.toast("✅ Estado guardado." if ok else "❌ Error al guardar.")
-    if st.button("🗑 Resetear sesión", use_container_width=True):
-        resetear_estado_local()
-        st.rerun()
-    st.caption("v2.0.0 · Fase 5.3")
+    selected_theme = st.selectbox("🎨 Tema", list(THEMES.keys()), key="tema")
+    st.divider()
+    selected_view = st.radio("📂 Módulos", VIEWS, key="vista")
+    st.divider()
+    st.caption("v2.0.0 · Fase 5")
     st.caption(f"🖼 Galería: {len(st.session_state.get('galeria', []))} items")
+
+inject_css(**THEMES[selected_theme])
 
 st.title(selected_view)
 st.divider()
