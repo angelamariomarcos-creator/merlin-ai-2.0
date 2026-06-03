@@ -10,3 +10,4 @@ python-dateutil==2.9.0
 fastapi==0.115.12
 uvicorn==0.34.2
 fal-client
+fal-client==0.5.9
