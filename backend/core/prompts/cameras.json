@@ -1,0 +1,96 @@
+{
+  "version": "1.0.0",
+  "description": "Tipos de cámara y lentes cinematográficas con modificadores de prompt para FLUX Dev",
+  "cameras": [
+    {
+      "id": "cam_01",
+      "name": "Wide Shot",
+      "label_es": "Plano general",
+      "prompt_fragment": "wide shot, establishing shot, full environment visible, cinematic composition, 24mm lens"
+    },
+    {
+      "id": "cam_02",
+      "name": "Close Up",
+      "label_es": "Primer plano",
+      "prompt_fragment": "close-up shot, intimate framing, subject fills frame, 85mm portrait lens, shallow depth of field"
+    },
+    {
+      "id": "cam_03",
+      "name": "Extreme Close Up",
+      "label_es": "Primerísimo plano",
+      "prompt_fragment": "extreme close-up, macro photography, intricate detail, 100mm macro lens, razor-sharp focus"
+    },
+    {
+      "id": "cam_04",
+      "name": "Bird's Eye",
+      "label_es": "Vista aérea cenital",
+      "prompt_fragment": "bird's eye view, overhead shot, top-down perspective, drone photography, aerial composition"
+    },
+    {
+      "id": "cam_05",
+      "name": "Worm's Eye",
+      "label_es": "Vista de gusano",
+      "prompt_fragment": "worm's eye view, low angle shot, looking upward, dramatic perspective distortion, wide angle 14mm lens"
+    },
+    {
+      "id": "cam_06",
+      "name": "Dutch Angle",
+      "label_es": "Ángulo holandés",
+      "prompt_fragment": "dutch angle, canted framing, tilted horizon, psychological tension, disorienting composition"
+    },
+    {
+      "id": "cam_07",
+      "name": "Over The Shoulder",
+      "label_es": "Por encima del hombro",
+      "prompt_fragment": "over-the-shoulder shot, OTS framing, foreground subject silhouette, depth layering, 50mm lens"
+    },
+    {
+      "id": "cam_08",
+      "name": "Anamorphic",
+      "label_es": "Anamórfico cinemascope",
+      "prompt_fragment": "anamorphic lens, ultra-wide cinematic aspect ratio, horizontal lens flares, oval bokeh, epic movie aesthetic"
+    },
+    {
+      "id": "cam_09",
+      "name": "Tilt Shift",
+      "label_es": "Tilt-shift miniatura",
+      "prompt_fragment": "tilt-shift photography, selective focus plane, miniature effect, toy-like scale, blurred edges, architectural photography"
+    },
+    {
+      "id": "cam_10",
+      "name": "Fish Eye",
+      "label_es": "Ojo de pez",
+      "prompt_fragment": "fisheye lens, 180-degree field of view, extreme barrel distortion, spherical warping, skateboard or action sport photography style"
+    },
+    {
+      "id": "cam_11",
+      "name": "Long Exposure",
+      "label_es": "Larga exposición",
+      "prompt_fragment": "long exposure photography, light trails, motion blur streaks, silky smooth water, night scene, 30 second exposure"
+    },
+    {
+      "id": "cam_12",
+      "name": "Telephoto",
+      "label_es": "Teleobjetivo comprimido",
+      "prompt_fragment": "telephoto lens, 400mm, compressed perspective, background compression, subject isolation, wildlife photography style"
+    },
+    {
+      "id": "cam_13",
+      "name": "Bokeh Portrait",
+      "label_es": "Bokeh retrato",
+      "prompt_fragment": "portrait photography, f/1.4 aperture, creamy bokeh background, subject in sharp focus, 85mm prime lens, studio lighting"
+    },
+    {
+      "id": "cam_14",
+      "name": "Dolly Zoom",
+      "label_es": "Zoom Vertigo",
+      "prompt_fragment": "dolly zoom effect, vertigo shot, background expanding while subject stays same size, psychological disorientation, Hitchcock technique"
+    },
+    {
+      "id": "cam_15",
+      "name": "POV Shot",
+      "label_es": "Punto de vista subjetivo",
+      "prompt_fragment": "point of view shot, first-person perspective, immersive camera angle, GoPro style, action camera, subjective viewpoint"
+    }
+  ]
+}

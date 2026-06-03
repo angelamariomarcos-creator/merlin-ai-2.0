@@ -1,8 +1,31 @@
 # frontend/views/image_generator.py
 import time
+import json
 import os
+from pathlib import Path
 import httpx
 import streamlit as st
+
+_ROOT = Path(__file__).resolve().parent.parent.parent
+_PROMPTS = _ROOT / "backend" / "core" / "prompts"
+
+
+@st.cache_resource
+def _load_cameras() -> list[dict]:
+    try:
+        with open(_PROMPTS / "cameras.json", encoding="utf-8") as f:
+            return json.load(f).get("cameras", [])
+    except Exception:
+        return []
+
+
+@st.cache_resource
+def _load_styles() -> list[dict]:
+    try:
+        with open(_PROMPTS / "styles.json", encoding="utf-8") as f:
+            return json.load(f).get("styles", [])
+    except Exception:
+        return []
 
 
 def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
@@ -14,33 +37,29 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
         "Authorization": f"Key {key}",
         "Content-Type": "application/json",
     }
-    payload = {
-        "prompt": prompt,
-        "num_inference_steps": steps,
-        "guidance_scale": guidance,
-        "image_size": "landscape_16_9",
-        "num_images": 1,
-        "enable_safety_checker": True,
-    }
 
-    # Submit
     with httpx.Client(timeout=30) as client:
         resp = client.post(
             "https://queue.fal.run/fal-ai/flux/dev",
-            json=payload,
+            json={
+                "prompt": prompt,
+                "num_inference_steps": steps,
+                "guidance_scale": guidance,
+                "image_size": "landscape_16_9",
+                "num_images": 1,
+                "enable_safety_checker": True,
+            },
             headers=headers,
         )
         resp.raise_for_status()
         submit_data = resp.json()
 
-    # FAL devuelve response_url y status_url en el submit
     response_url = submit_data.get("response_url")
     status_url = submit_data.get("status_url")
 
     if not response_url:
         raise ValueError(f"No response_url en submit: {submit_data}")
 
-    # Poll usando status_url (GET) hasta COMPLETED
     for _ in range(60):
         time.sleep(3)
         with httpx.Client(timeout=30) as client:
@@ -50,7 +69,6 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
 
         status = status_data.get("status")
         if status == "COMPLETED":
-            # Fetch resultado final con response_url (GET)
             with httpx.Client(timeout=30) as client:
                 res = client.get(response_url, headers=headers)
                 res.raise_for_status()
@@ -68,6 +86,12 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
 def render() -> None:
     st.subheader("🎨 Generador de Imagenes · FLUX Dev")
 
+    cameras = _load_cameras()
+    styles  = _load_styles()
+
+    camera_options = ["— Sin cámara —"] + [f"{c['label_es']}" for c in cameras]
+    style_options  = ["— Sin estilo —"]  + [f"{s['label_es']}" for s in styles]
+
     st.text_area(
         "Prompt",
         value=st.session_state.get("selected_panic_prompt", ""),
@@ -77,8 +101,12 @@ def render() -> None:
     )
 
     c1, c2 = st.columns(2)
-    c1.slider("Inference steps", 1, 50, step=1, key="flux_steps")
-    c2.slider("Guidance scale", 1.0, 7.0, step=0.1, key="guidance_scale")
+    sel_camera = c1.selectbox("📷 Cámara", camera_options, key="sel_camera")
+    sel_style  = c2.selectbox("🎨 Estilo", style_options,  key="sel_style")
+
+    c3, c4 = st.columns(2)
+    c3.slider("Inference steps", 1, 50, value=28, step=1,   key="flux_steps")
+    c4.slider("Guidance scale",  1.0, 7.0, value=3.5, step=0.1, key="guidance_scale")
 
     if st.button("🎨 Generar imagen", use_container_width=True):
         _prompt = st.session_state.get("prompt_input", "").strip()
@@ -86,10 +114,21 @@ def render() -> None:
             st.warning("Escribe un prompt antes de generar.")
             return
 
+        # Enriquecer prompt con fragmentos de cámara y estilo
+        enriched = _prompt
+        if sel_camera != "— Sin cámara —":
+            cam = next((c for c in cameras if c["label_es"] == sel_camera), None)
+            if cam:
+                enriched += f", {cam['prompt_fragment']}"
+        if sel_style != "— Sin estilo —":
+            sty = next((s for s in styles if s["label_es"] == sel_style), None)
+            if sty:
+                enriched += f", {sty['prompt_fragment']}"
+
         with st.spinner("🔮 Generando con FLUX Dev..."):
             try:
                 result = _generate_image(
-                    prompt=_prompt,
+                    prompt=enriched,
                     steps=st.session_state.get("flux_steps", 28),
                     guidance=st.session_state.get("guidance_scale", 3.5),
                 )
@@ -103,6 +142,8 @@ def render() -> None:
                     "prompt": _prompt,
                     "url": url,
                     "timestamp": time.strftime("%Y-%m-%d %H:%M"),
+                    "style": sel_style,
+                    "camera": sel_camera,
                 })
                 st.toast("✅ Imagen guardada en galería", icon="🖼️")
 
