@@ -1,6 +1,61 @@
 # frontend/views/image_generator.py
 import time
+import os
+import httpx
 import streamlit as st
+
+
+def _get_fal_key() -> str:
+    key = os.environ.get("FAL_KEY", "")
+    if not key:
+        st.error("FAL_KEY no encontrada en secrets.")
+    return key
+
+
+def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
+    key = _get_fal_key()
+    headers = {
+        "Authorization": f"Key {key}",
+        "Content-Type": "application/json",
+    }
+    payload = {
+        "prompt": prompt,
+        "num_inference_steps": steps,
+        "guidance_scale": guidance,
+        "image_size": "landscape_16_9",
+        "num_images": 1,
+        "enable_safety_checker": True,
+    }
+
+    # Submit
+    with httpx.Client(timeout=30) as client:
+        resp = client.post("https://queue.fal.run/fal-ai/flux/dev", json=payload, headers=headers)
+        resp.raise_for_status()
+        data = resp.json()
+
+    request_id = data.get("request_id")
+    if not request_id:
+        raise ValueError(f"No request_id en respuesta: {data}")
+
+    # Poll
+    result_url = f"https://queue.fal.run/fal-ai/flux/dev/requests/{request_id}"
+    for _ in range(60):
+        time.sleep(3)
+        with httpx.Client(timeout=30) as client:
+            r = client.get(result_url, headers=headers)
+            r.raise_for_status()
+            result = r.json()
+
+        status = result.get("status")
+        if status == "COMPLETED":
+            images = result.get("images", [])
+            if images:
+                return {"url": images[0]["url"], "seed": result.get("seed", 0)}
+        elif status in ("FAILED", "ERROR"):
+            raise ValueError(f"FAL.AI error: {result}")
+
+    raise TimeoutError("FAL.AI no respondio en tiempo.")
+
 
 def render() -> None:
     st.subheader("🎨 Generador de Imagenes · FLUX Dev")
@@ -23,18 +78,25 @@ def render() -> None:
             st.warning("Escribe un prompt antes de generar.")
             return
 
-        with st.spinner("Generando imagen..."):
-            time.sleep(2)
-            url = "https://picsum.photos/seed/merlin/512/512"
+        with st.spinner("🔮 Generando con FLUX Dev..."):
+            try:
+                result = _generate_image(
+                    prompt=_prompt,
+                    steps=st.session_state.get("flux_steps", 28),
+                    guidance=st.session_state.get("guidance_scale", 3.5),
+                )
+                url = result["url"]
+                st.image(url, caption=f"Seed: {result.get('seed', '—')}", use_container_width=True)
 
-        st.image(url, caption=f"Prompt: {_prompt[:60]}...", use_container_width=True)
+                if "galeria" not in st.session_state:
+                    st.session_state.galeria = []
 
-        if "galeria" not in st.session_state:
-            st.session_state.galeria = []
+                st.session_state.galeria.insert(0, {
+                    "prompt": _prompt,
+                    "url": url,
+                    "timestamp": time.strftime("%Y-%m-%d %H:%M"),
+                })
+                st.toast("✅ Imagen guardada en galería", icon="🖼️")
 
-        st.session_state.galeria.insert(0, {
-            "prompt": _prompt,
-            "url": url,
-            "timestamp": time.strftime("%Y-%m-%d %H:%M"),
-        })
-        st.toast("✅ Imagen guardada en galería", icon="🖼️")
+            except Exception as e:
+                st.error(f"❌ Error generando imagen: {e}")
