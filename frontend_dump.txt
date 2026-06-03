@@ -1,0 +1,1295 @@
+﻿=== app.py ===
+import traceback
+import streamlit as st
+
+failed = []
+views = ['dashboard','image_generator','video_gateway','upscaler',
+         'market_intel','linkedin_writer','thresholds','infra_monitor',
+         'billing','history','agents_manager','pixar_gallery',
+         'prompt_optimizer','logs','settings']
+
+for v in views:
+    try:
+        m = __import__(f'frontend.views.{v}', fromlist=[v])
+        assert hasattr(m, 'render')
+    except Exception as e:
+        failed.append(f"{v}: {e}")
+
+if failed:
+    for f in failed:
+        st.error(f)
+    st.stop()
+# frontend/app.py
+
+import sys
+from pathlib import Path
+
+# â”€â”€ sys.path: raÃ­z del repo como base de todos los imports â”€
+_ROOT = Path(__file__).resolve().parent.parent
+if str(_ROOT) not in sys.path:
+    sys.path.insert(0, str(_ROOT))
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+import random
+import streamlit as st
+from datetime import datetime, timezone
+
+# Imports absolutos garantizados por el _ROOT
+from frontend.config.styles       import STYLES
+from frontend.config.views        import VIEWS
+from frontend.core.css_engine     import inject_css
+from frontend.core.session        import init_session
+from frontend.core.persistence    import guardar_estado_local, resetear_estado_local
+from frontend.core.registry       import dispatch
+from frontend.components.sidebar  import render_sidebar
+
+# â”€â”€ ConfiguraciÃ³n de pÃ¡gina â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+st.set_page_config(
+    page_title="MerlÃ­n AI 2.0",
+    page_icon="ðŸ”®",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+# â”€â”€ InicializaciÃ³n de sesiÃ³n y estado persistido â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+init_session()
+
+# â”€â”€ Sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+selected_style, selected_view = render_sidebar(STYLES, VIEWS)
+
+# â”€â”€ InyecciÃ³n CSS dinÃ¡mica â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+inject_css(**STYLES[selected_style])
+
+# â”€â”€ Controles de persistencia en sidebar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+with st.sidebar:
+    st.divider()
+    if st.button("ðŸ’¾ Guardar sesiÃ³n", use_container_width=True):
+        ok = guardar_estado_local()
+        st.toast("âœ… Estado guardado." if ok else "âŒ Error al guardar.")
+    if st.button("ðŸ—‘ Resetear sesiÃ³n", use_container_width=True):
+        resetear_estado_local()
+        st.rerun()
+    st.caption(f"v2.0.0 Â· Fase 5.3")
+    st.caption(f"ðŸ–¼ GalerÃ­a: {len(st.session_state.get('galeria', []))} items")
+
+# â”€â”€ Enrutador principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+st.title(selected_view)
+st.divider()
+dispatch(selected_view)
+
+=== __init__.py ===
+
+=== card.py ===
+import streamlit as st
+
+def merlin_card(content: str) -> None:
+    """Envuelve un bloque de texto dentro de una tarjeta con diseÃ±o MerlÃ­n usando contenedores nativos."""
+    # Usamos container con borde para simular la clase .merlin-card
+    with st.container(border=True):
+        st.write(content)
+
+def merlin_metric(label: str, value: str) -> None:
+    """Renderiza una mÃ©trica personalizada usando componentes nativos de Streamlit."""
+    # Usamos st.metric que es el estÃ¡ndar profesional y estable
+    st.metric(label=label, value=value)
+
+=== panic_button.py ===
+# frontend/components/panic_button.py
+import random
+import streamlit as st
+from frontend.core.prompt_loader import load_panic_pools
+
+
+def _generate_ideas(pools: dict[str, list[str]], n: int = 3) -> list[str]:
+    ideas: list[str] = []
+    for _ in range(n):
+        idea = (
+            f"{random.choice(pools['subjects'])} "
+            f"{random.choice(pools['settings'])}, "
+            f"{random.choice(pools['styles'])}, "
+            f"{random.choice(pools['cameras'])}, "
+            f"masterpiece, ultra-detailed"
+        )
+        ideas.append(idea)
+    return ideas
+
+
+def render_panic_button() -> None:
+    st.subheader("ðŸŽ² BotÃ³n de PÃ¡nico Creativo")
+    st.caption("Â¿Sin inspiraciÃ³n? Genera 3 combinaciones premium al azar.")
+
+    pools = load_panic_pools()
+
+    if st.button("ðŸŽ² Â¡PÃ¡nico Creativo! Genera 3 ideas", use_container_width=True):
+        st.session_state.panic_ideas = _generate_ideas(pools)
+        st.session_state.selected_panic_prompt = ""
+
+    if st.session_state.get("panic_ideas"):
+        st.write("**Elige una idea para usarla como prompt:**")
+        for i, idea in enumerate(st.session_state.panic_ideas):
+            col_text, col_btn = st.columns([5, 1])
+            with col_text:
+                with st.container(border=True):
+                    st.info(f"ðŸ’¡ **Idea {i+1}:** {idea}")
+                    st.write(idea)
+            with col_btn:
+                st.write("")
+                st.write("")
+                if st.button(f"Usar #{i+1}", key=f"panic_select_{i}"):
+                    st.session_state.selected_panic_prompt = idea
+                    st.rerun()
+
+=== __init__.py ===
+
+=== styles.py ===
+# frontend/config/styles.py
+STYLES: dict[str, dict[str, str]] = {
+    "MerlÃ­n Premium (Default)": {
+        "bg": "#0D0D1A", "sidebar": "#12122B",
+        "text": "#E8E8FF", "accent": "#7B5EA7",
+    },
+    "Oscuro Obsidiana": {
+        "bg": "#0A0A0A", "sidebar": "#111111",
+        "text": "#CCCCCC", "accent": "#555555",
+    },
+    "Ciberpunk Violeta": {
+        "bg": "#0E0014", "sidebar": "#1A0025",
+        "text": "#F0D0FF", "accent": "#CC00FF",
+    },
+    "NeÃ³n NeomÃ³rfico": {
+        "bg": "#1A1A2E", "sidebar": "#16213E",
+        "text": "#E0FBFC", "accent": "#00F5D4",
+    },
+    "Vaporwave Nocturno": {
+        "bg": "#0D001A", "sidebar": "#1A0033",
+        "text": "#FFD6F5", "accent": "#FF6EC7",
+    },
+    "GÃ³tico Industrial": {
+        "bg": "#0C0C0C", "sidebar": "#161616",
+        "text": "#B0A090", "accent": "#8B0000",
+    },
+    "Matriz Digital": {
+        "bg": "#000D00", "sidebar": "#001500",
+        "text": "#A0FFA0", "accent": "#00FF41",
+    },
+    "Minimalista CarbÃ³n": {
+        "bg": "#1C1C1C", "sidebar": "#242424",
+        "text": "#E0E0E0", "accent": "#FFFFFF",
+    },
+    "Espacio Profundo": {
+        "bg": "#03001C", "sidebar": "#07002E",
+        "text": "#C8D8FF", "accent": "#3A86FF",
+    },
+    "Magia Arcana": {
+        "bg": "#0A0010", "sidebar": "#130020",
+        "text": "#E8D5FF", "accent": "#9B5DE5",
+    },
+    "Aurora Boreal": {
+        "bg": "#001A10", "sidebar": "#002918",
+        "text": "#D0FFF0", "accent": "#00F5A0",
+    },
+    "Eclipse Solar": {
+        "bg": "#100500", "sidebar": "#1E0A00",
+        "text": "#FFE8CC", "accent": "#FF6B00",
+    },
+    "Hierro Forjado": {
+        "bg": "#0F0F0F", "sidebar": "#1A1A1A",
+        "text": "#C0B8B0", "accent": "#8A8A8A",
+    },
+    "Lava CuÃ¡ntica": {
+        "bg": "#100000", "sidebar": "#1E0505",
+        "text": "#FFD0D0", "accent": "#FF2222",
+    },
+    "Abismo OceÃ¡nico": {
+        "bg": "#00080F", "sidebar": "#001220",
+        "text": "#B0DFF0", "accent": "#0096C7",
+    },
+}
+
+=== views.py ===
+# frontend/config/views.py
+VIEWS: list[str] = [
+    "ðŸ›¸ Dashboard General",
+    "ðŸŽ¨ Generador de ImÃ¡genes (Flux)",
+    "ðŸŽ¬ Pasarela de Video AI",
+    "ðŸ” Reescalado 4K Nativo (FAL.AI)",
+    "ðŸ“ˆ Inteligencia de Mercado (Perplexity)",
+    "âœï¸ Redactor LinkedIn (Claude)",
+    "âš™ï¸ ConfiguraciÃ³n de Umbrales",
+    "ðŸ›¡ï¸ Monitor de Infraestructura",
+    "ðŸ’° Control de Costes y MÃ¡rgenes",
+    "ðŸ“‚ Historial de Generaciones",
+    "ðŸ¤– GestiÃ³n de Agentes Orquestadores",
+    "ðŸŽ­ GalerÃ­a de Estilos Pixar",
+    "âš¡ OptimizaciÃ³n de Prompts",
+    "ðŸ“¬ Logs del Sistema en Vivo",
+    "ðŸ”® ConfiguraciÃ³n de MerlÃ­n AI",
+]
+
+=== __init__.py ===
+
+=== async_runner.py ===
+# frontend/core/async_runner.py
+import logging
+import threading
+import time
+from typing import Any, Callable
+
+import streamlit as st
+
+logger = logging.getLogger("async_runner")
+
+# â”€â”€ Timeouts por agente (segundos) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+AGENT_TIMEOUTS: dict[str, int] = {
+    "image-generator": 90,
+    "animation": 240,
+    "upscaler": 120,
+    "market-intel": 45,
+    "linkedin-writer": 30,
+    "orchestrator": 20,
+    "default": 60,
+}
+
+# â”€â”€ Mensajes de progreso por agente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+AGENT_PROGRESS_MESSAGES: dict[str, list[str]] = {
+    "image-generator": [
+        "ðŸ”® Invocando a MerlÃ­n...",
+        "ðŸŽ¨ FLUX procesando tu prompt...",
+        "âœ¨ Aplicando estilos y texturas...",
+        "ðŸ–¼ï¸ Finalizando composiciÃ³n...",
+    ],
+    "animation": [
+        "ðŸ”® Preparando el hechizo de animaciÃ³n...",
+        "ðŸŽ¬ SeedAnce analizando la imagen...",
+        "ðŸŒ€ Generando frames de movimiento...",
+        "â±ï¸ Renderizando vÃ­deo 4s...",
+        "ðŸŽžï¸ Codificando salida final...",
+    ],
+    "upscaler": [
+        "ðŸ”® Iniciando reescalado 4K...",
+        "ðŸ” AuraSR analizando texturas...",
+        "â¬†ï¸ Procesando tiles en alta resoluciÃ³n...",
+        "âœ… Finalizando imagen 4K...",
+    ],
+    "market-intel": [
+        "ðŸ”® Consultando a los orÃ¡culos del mercado...",
+        "ðŸŒ Perplexity buscando tendencias...",
+        "ðŸ§  Claude analizando los datos...",
+        "ðŸ“Š Estructurando informe final...",
+    ],
+    "linkedin-writer": [
+        "ðŸ”® Afilando la pluma editorial...",
+        "âœï¸ Claude redactando el borrador...",
+        "ðŸ“ Revisando tono y mÃ©tricas...",
+    ],
+    "default": [
+        "ðŸ”® Procesando...",
+        "âš™ï¸ Trabajando en ello...",
+        "ðŸŒ€ Casi listo...",
+    ],
+}
+
+# â”€â”€ Resultado del runner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class RunnerResult:
+    def __init__(
+        self,
+        success: bool,
+        data: Any = None,
+        error: str = "",
+        elapsed: float = 0.0,
+        timed_out: bool = False,
+    ):
+        self.success   = success
+        self.data      = data
+        self.error     = error
+        self.elapsed   = elapsed
+        self.timed_out = timed_out
+
+# â”€â”€ Runner con timeout en hilo separado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+def run_with_timeout(
+    fn: Callable[[], Any],
+    agent: str = "default",
+) -> RunnerResult:
+    timeout = AGENT_TIMEOUTS.get(agent, AGENT_TIMEOUTS["default"])
+    result_container: dict[str, Any] = {}
+    error_container:  dict[str, Any] = {}
+
+    def target() -> None:
+        try:
+            result_container["value"] = fn()
+        except Exception as e:
+            error_container["value"] = str(e)
+
+    thread = threading.Thread(target=target, daemon=True)
+    t_start = time.perf_counter()
+    thread.start()
+    thread.join(timeout=timeout)
+    elapsed = round(time.perf_counter() - t_start, 2)
+
+    if thread.is_alive():
+        return RunnerResult(success=False, error=f"Timeout: {agent} no respondiÃ³.", elapsed=elapsed, timed_out=True)
+
+    if "value" in error_container:
+        return RunnerResult(success=False, error=error_container["value"], elapsed=elapsed)
+
+    return RunnerResult(success=True, data=result_container.get("value"), elapsed=elapsed)
+
+# â”€â”€ Bloque de carga con progreso visual â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+def run_with_spinner(
+    fn: Callable[[], Any],
+    agent: str = "default",
+    label_override: str = "",
+) -> RunnerResult:
+    messages  = AGENT_PROGRESS_MESSAGES.get(agent, AGENT_PROGRESS_MESSAGES["default"])
+    timeout   = AGENT_TIMEOUTS.get(agent, AGENT_TIMEOUTS["default"])
+    main_label = label_override or messages[0]
+
+    result_holder: list[RunnerResult] = []
+    done_flag = threading.Event()
+
+    def worker() -> None:
+        r = run_with_timeout(fn, agent)
+        result_holder.append(r)
+        done_flag.set()
+
+    threading.Thread(target=worker, daemon=True).start()
+
+    progress_bar = st.progress(0, text=main_label)
+    # Cambio clave: usamos un contenedor en lugar de st.empty() para evitar el removeChild
+    status_container = st.container()
+    
+    t_start = time.time()
+    while not done_flag.is_set():
+        elapsed_pct = min((time.time() - t_start) / timeout, 0.95)
+        current_msg = messages[min(int(elapsed_pct * len(messages)), len(messages) - 1)]
+        
+        progress_bar.progress(elapsed_pct, text=current_msg)
+        with status_container:
+            st.caption(f"â±ï¸ {current_msg}")
+        
+        time.sleep(0.5)
+
+    progress_bar.empty()
+    status_container.empty()
+
+    result = result_holder[0] if result_holder else RunnerResult(success=False, error="Error interno.")
+    _render_result_feedback(result, agent)
+    return result
+
+def _render_result_feedback(result: RunnerResult, agent: str) -> None:
+    if result.success:
+        st.success(f"âœ… Completado en {result.elapsed}s.", icon="âœ…")
+    elif result.timed_out:
+        st.error(f"â±ï¸ Timeout: El agente `{agent}` tardÃ³ demasiado.", icon="â±ï¸")
+    else:
+        st.error(f"âŒ Error en `{agent}`: {result.error}", icon="ðŸš¨")
+
+=== css_engine.py ===
+# frontend/core/css_engine.py
+from pathlib import Path
+import streamlit as st
+
+_CSS_PATH = Path(__file__).resolve().parent.parent / "styles.css"
+
+@st.cache_resource
+def _load_css_template() -> str:
+    """Carga y cachea la plantilla CSS una sola vez."""
+    if not _CSS_PATH.exists():
+        return _DEFAULT_CSS
+    return _CSS_PATH.read_text(encoding="utf-8")
+
+def inject_css(accent: str, bg: str, sidebar: str, text: str) -> None:
+    """Inyecta el CSS de forma estÃ¡tica para evitar conflictos con el DOM de Streamlit."""
+    template = _load_css_template()
+    css = (
+        template
+        .replace("{{ACCENT}}", accent)
+        .replace("{{BG}}", bg)
+        .replace("{{SIDEBAR}}", sidebar)
+        .replace("{{TEXT}}", text)
+    )
+    
+    # InyecciÃ³n directa. Al usarlo en el punto de entrada de la app, 
+    # Streamlit lo tratarÃ¡ como un elemento estÃ¡tico.
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
+
+_DEFAULT_CSS = """
+.stApp { background-color: {{BG}}; color: {{TEXT}}; }
+[data-testid="stSidebar"] { background-color: {{SIDEBAR}}; }
+h1, h2, h3 { color: {{ACCENT}} !important; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: {{BG}}; }
+::-webkit-scrollbar-thumb { background: {{ACCENT}}66; border-radius: 3px; }
+"""
+
+=== gallery.py ===
+# frontend/core/gallery.py
+
+import hashlib
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
+import streamlit as st
+from pydantic import BaseModel, Field, field_validator, model_validator
+
+logger = logging.getLogger("gallery")
+
+# â”€â”€ URL de placeholder FIJA por entorno demo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Misma seed siempre â†’ misma imagen â†’ no cambia en reruns
+DEMO_PLACEHOLDER_URL = "https://picsum.photos/seed/merlin-ai-demo/512/512"
+
+
+# â”€â”€ Esquema estricto de entrada â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class GalleryEntry(BaseModel):
+    model_config = {"strict": True}
+
+    prompt: str = Field(min_length=3, max_length=2000)
+    style: str = Field(min_length=1, max_length=200)
+    agent: str = Field(min_length=1)
+    url: str = Field(default="")
+    image_bytes: bytes | None = Field(default=None)
+    is_demo: bool = Field(default=False)
+
+    @field_validator("prompt", "style", "agent", mode="before")
+    @classmethod
+    def strip_and_reject_empty(cls, v: str) -> str:
+        if not isinstance(v, str) or v.strip() == "":
+            raise ValueError("El campo no puede ser una cadena vacÃ­a.")
+        return v.strip()
+
+    @field_validator("agent", mode="before")
+    @classmethod
+    def validate_agent(cls, v: str) -> str:
+        allowed = {
+            "image-generator", "animation",
+            "upscaler", "demo", "manual",
+        }
+        v = v.strip()
+        if v not in allowed:
+            raise ValueError(
+                f"Agente '{v}' no permitido. "
+                f"Valores vÃ¡lidos: {sorted(allowed)}"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def validate_at_least_one_image_source(self) -> "GalleryEntry":
+        """
+        En modo real:  url apunta a CDN/FAL.AI  â†’ vÃ¡lido.
+        En modo demo:  is_demo=True              â†’ se asigna placeholder fijo.
+        En modo bytes: image_bytes proporcionado â†’ vÃ¡lido para display local.
+        Los tres son mutuamente excluyentes en prioridad.
+        """
+        if self.is_demo:
+            # Ignoramos url entrante y forzamos placeholder fijo
+            object.__setattr__(self, "url", DEMO_PLACEHOLDER_URL)
+            return self
+
+        if self.image_bytes is not None:
+            # Bytes reales: url no es necesaria
+            return self
+
+        if not self.url or not self.url.startswith(("http://", "https://")):
+            raise ValueError(
+                "Debes proporcionar una URL http/https vÃ¡lida, "
+                "image_bytes, o activar is_demo=True."
+            )
+        return self
+
+
+# â”€â”€ Registro persistido en session_state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class GalleryRecord(BaseModel):
+    """Estructura final que se guarda en st.session_state.galeria"""
+    entry_id:   str
+    prompt:     str
+    style:      str
+    agent:      str
+    url:        str           # URL final (CDN, FAL, o placeholder fijo)
+    has_bytes:  bool          # True si se guardaron bytes locales
+    is_demo:    bool
+    timestamp:  str
+    prompt_hash: str          # SHA256 primeros 8 chars para deduplicaciÃ³n
+
+    def to_dict(self) -> dict[str, Any]:
+        return self.model_dump()
+
+
+# â”€â”€ FunciÃ³n principal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+def save_to_gallery(
+    prompt: str,
+    style: str,
+    agent: str,
+    url: str = "",
+    image_bytes: bytes | None = None,
+    is_demo: bool = False,
+) -> GalleryRecord | None:
+    """
+    Valida la entrada con GalleryEntry (Pydantic),
+    construes un GalleryRecord inmutable y lo aÃ±ade
+    al frente de st.session_state.galeria.
+    """
+    # 1. Validar esquema de entrada
+    try:
+        entry = GalleryEntry(
+            prompt=prompt,
+            style=style,
+            agent=agent,
+            url=url,
+            image_bytes=image_bytes,
+            is_demo=is_demo,
+        )
+    except Exception as e:
+        logger.error(f"[gallery] Entrada invÃ¡lida, no guardada: {e}")
+        st.toast(f"âŒ Error de validaciÃ³n: {e}", icon="ðŸš¨")
+        return None
+
+    # 2. DeduplicaciÃ³n por hash de prompt + style
+    prompt_hash = hashlib.sha256(
+        f"{entry.prompt}{entry.style}".encode()
+    ).hexdigest()[:8]
+
+    existing_hashes = {
+        r.get("prompt_hash") for r in st.session_state.get("galeria", [])
+    }
+    if prompt_hash in existing_hashes:
+        logger.warning(
+            f"[gallery] Entrada duplicada detectada (hash={prompt_hash}). "
+            f"No guardada."
+        )
+        st.toast("âš ï¸ Esta combinaciÃ³n ya estÃ¡ en la galerÃ­a.", icon="âš ï¸")
+        return None
+
+    # 3. Construir registro final
+    entry_index = len(st.session_state.get("galeria", []))
+    record = GalleryRecord(
+        entry_id=f"gen_{entry_index:04d}_{prompt_hash}",
+        prompt=entry.prompt,
+        style=entry.style,
+        agent=entry.agent,
+        url=entry.url,
+        has_bytes=entry.image_bytes is not None,
+        is_demo=entry.is_demo,
+        timestamp=datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        prompt_hash=prompt_hash,
+    )
+
+    # 4. Guardar bytes por separado en session_state si existen
+    if entry.image_bytes is not None:
+        if "galeria_bytes" not in st.session_state:
+            st.session_state.galeria_bytes = {}
+        st.session_state.galeria_bytes[record.entry_id] = entry.image_bytes
+
+    # 5. Insertar al frente
+    if "galeria" not in st.session_state:
+        st.session_state.galeria = []
+
+    st.session_state.galeria.insert(0, record.to_dict())
+    logger.info(
+        f"[gallery] Guardado: id={record.entry_id} | "
+        f"agent={record.agent} | demo={record.is_demo}"
+    )
+    return record
+
+
+# â”€â”€ Renderizado de imagen en vista â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+def render_gallery_image(record: dict[str, Any]) -> None:
+    """
+    Renderiza la imagen de un GalleryRecord priorizando:
+    1. bytes locales (calidad mÃ¡xima, sin red)
+    2. URL remota (CDN / FAL.AI)
+    3. Placeholder fijo de demo
+    """
+    entry_id = record.get("entry_id", "")
+    bytes_cache: dict = st.session_state.get("galeria_bytes", {})
+
+    if entry_id in bytes_cache:
+        st.image(bytes_cache[entry_id], use_container_width=True)
+        return
+
+    url = record.get("url", "")
+    if url:
+        try:
+            st.image(url, use_container_width=True)
+        except Exception:
+            st.image(DEMO_PLACEHOLDER_URL, use_container_width=True)
+        return
+
+    st.image(DEMO_PLACEHOLDER_URL, use_container_width=True)
+
+
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+def clear_gallery() -> None:
+    st.session_state.galeria = []
+    st.session_state.galeria_bytes = {}
+    logger.info("[gallery] GalerÃ­a limpiada.")
+
+
+def get_gallery_count() -> int:
+    return len(st.session_state.get("galeria", []))
+
+=== persistence.py ===
+# frontend/core/persistence.py
+
+import json
+import logging
+from datetime import datetime, timezone
+from pathlib import Path
+from typing import Any
+
+import streamlit as st
+
+logger = logging.getLogger("persistence")
+
+# â”€â”€ Ruta dinÃ¡mica y portable blindada (RaÃ­z del proyecto) â”€â”€
+# Mantiene la coherencia exacta con la estructura aplicada por Claude
+_ROOT = Path(__file__).resolve().parent.parent.parent
+PERSISTENCE_PATH = _ROOT / "backend" / "core" / "estado.json"
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+# â”€â”€ Claves planas: coinciden exactamente con key= de cada widget â”€â”€
+PERSISTIBLE_KEYS: dict[str, Any] = {
+    "galeria": [],
+    "max_cost_per_image_usd": 0.035,
+    "max_cost_per_video_usd": 0.100,
+    "margin_floor_pct": 70.0,
+    "flux_inference_steps": 28,
+    "default_guidance_scale": 3.5,
+}
+
+
+# â”€â”€ Guardar estado local â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+def guardar_estado_local() -> bool:
+    """
+    Serializa las claves planas de st.session_state en la
+    macro-entidad 'frontend' dentro de estado.json.
+    """
+    try:
+        # Asegurar que el directorio contenedor exista en el backend
+        PERSISTENCE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        
+        estado: dict[str, Any] = {}
+        if PERSISTENCE_PATH.exists():
+            try:
+                with open(PERSISTENCE_PATH, "r", encoding="utf-8") as f:
+                    estado = json.load(f)
+            except json.JSONDecodeError:
+                logger.warning("[persistence] estado.json corrupto. Se sobrescribirÃ¡.")
+
+        frontend_block: dict[str, Any] = estado.setdefault("frontend", {})
+
+        for key in PERSISTIBLE_KEYS:
+            if key in st.session_state:
+                frontend_block[key] = st.session_state[key]
+
+        frontend_block["last_saved"] = datetime.now(timezone.utc).isoformat()
+
+        with open(PERSISTENCE_PATH, "w", encoding="utf-8") as f:
+            json.dump(estado, f, ensure_ascii=False, indent=2)
+
+        logger.info(f"[persistence] Guardado OK. Claves: {list(PERSISTIBLE_KEYS.keys())}")
+        return True
+
+    except OSError as e:
+        logger.error(f"[persistence] Error de I/O al guardar: {e}")
+        return False
+
+
+# â”€â”€ Cargar estado local â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+def cargar_estado_local() -> bool:
+    """
+    Carga los datos en st.session_state antes de que se rendericen los widgets.
+    Evita la pÃ©rdida de datos y respeta el ciclo de vida de Streamlit.
+    """
+    if not PERSISTENCE_PATH.exists():
+        logger.warning(f"[persistence] estado.json no encontrado en {PERSISTENCE_PATH}. Aplicando defaults.")
+        _apply_defaults()
+        return False
+
+    try:
+        with open(PERSISTENCE_PATH, "r", encoding="utf-8") as f:
+            estado = json.load(f)
+
+        frontend_block: dict[str, Any] = estado.get("frontend", {})
+
+        if not frontend_block:
+            logger.info("[persistence] Sin bloque 'frontend'. Aplicando defaults.")
+            _apply_defaults()
+            return False
+
+        loaded: list[str] = []
+        for key, default in PERSISTIBLE_KEYS.items():
+            if key not in st.session_state:
+                # Copia profunda para evitar mutaciones de listas (para la galerÃ­a)
+                if isinstance(default, list):
+                    st.session_state[key] = json.loads(json.dumps(frontend_block.get(key, default)))
+                else:
+                    st.session_state[key] = frontend_block.get(key, default)
+                loaded.append(key)
+
+        logger.info(f"[persistence] Cargado OK. Restauradas: {loaded}")
+        return True
+
+    except (json.JSONDecodeError, OSError) as e:
+        logger.error(f"[persistence] Error al cargar: {e}")
+        _apply_defaults()
+        return False
+
+
+# â”€â”€ Aplicar defaults si no hay persistencia â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+def _apply_defaults() -> None:
+    for key, default in PERSISTIBLE_KEYS.items():
+        if key not in st.session_state:
+            if isinstance(default, list):
+                st.session_state[key] = json.loads(json.dumps(default))
+            else:
+                st.session_state[key] = default
+
+
+# â”€â”€ Resetear estado persistido â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+def resetear_estado_local() -> bool:
+    """
+    Limpia el bloque 'frontend' del JSON y reestablece session_state.
+    """
+    for key, default in PERSISTIBLE_KEYS.items():
+        if isinstance(default, list):
+            st.session_state[key] = json.loads(json.dumps(default))
+        else:
+            st.session_state[key] = default
+
+    if not PERSISTENCE_PATH.exists():
+        return True
+
+    try:
+        with open(PERSISTENCE_PATH, "r", encoding="utf-8") as f:
+            estado = json.load(f)
+
+        if "frontend" in estado:
+            del estado["frontend"]
+
+        with open(PERSISTENCE_PATH, "w", encoding="utf-8") as f:
+            json.dump(estado, f, ensure_ascii=False, indent=2)
+
+        logger.info("[persistence] Bloque 'frontend' eliminado correctamente.")
+        return True
+
+    except (json.JSONDecodeError, OSError) as e:
+        logger.error(f"[persistence] Error al resetear: {e}")
+        return False
+
+=== prompt_loader.py ===
+# frontend/core/prompt_loader.py
+
+import json
+import logging
+from pathlib import Path
+from typing import Any
+
+import streamlit as st
+
+logger = logging.getLogger("prompt_loader")
+
+_ROOT       = Path(__file__).resolve().parent.parent.parent
+PROMPTS_DIR = _ROOT / "backend" / "core" / "prompts"
+
+
+def _load_json(filename: str) -> dict[str, Any]:
+    path = PROMPTS_DIR / filename
+    if not path.exists():
+        raise FileNotFoundError(f"[prompt_loader] No encontrado: {path}")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+@st.cache_resource
+def load_panic_pools() -> dict[str, list[str]]:
+    try:
+        cameras_raw  = _load_json("cameras.json")
+        styles_raw   = _load_json("styles.json")
+        subjects_raw = _load_json("subjects.json")
+        settings_raw = _load_json("settings.json")
+        return {
+            "subjects": subjects_raw["subjects"],
+            "settings": settings_raw["settings"],
+            "styles":   [s["prompt_fragment"] for s in styles_raw["styles"]],
+            "cameras":  [c["prompt_fragment"] for c in cameras_raw["cameras"]],
+        }
+    except (FileNotFoundError, KeyError, json.JSONDecodeError) as e:
+        logger.error(f"[prompt_loader] {e}")
+        return {
+            "subjects": ["a lone wanderer", "an ancient guardian"],
+            "settings": ["in a forgotten realm", "inside a neon city"],
+            "styles":   ["hyperrealistic, 8K, cinematic lighting"],
+            "cameras":  ["wide shot, cinematic 35mm, anamorphic bokeh"],
+        }
+
+=== registry.py ===
+# frontend/core/registry.py
+
+import streamlit as st
+
+from frontend.views import (
+    dashboard,
+    image_generator,
+    video_gateway,
+    upscaler,
+    market_intel,
+    linkedin_writer,
+    thresholds,
+    infra_monitor,
+    billing,
+    history,
+    agents_manager,
+    pixar_gallery,
+    prompt_optimizer,
+    logs,
+    settings,
+)
+
+VIEWS_REGISTRY: dict[str, callable] = {
+    "ðŸ›¸ Dashboard General":                    dashboard.render,
+    "ðŸŽ¨ Generador de ImÃ¡genes (Flux)":         image_generator.render,
+    "ðŸŽ¬ Pasarela de Video AI":                 video_gateway.render,
+    "ðŸ” Reescalado 4K Nativo (FAL.AI)":        upscaler.render,
+    "ðŸ“ˆ Inteligencia de Mercado (Perplexity)":  market_intel.render,
+    "âœï¸ Redactor LinkedIn (Claude)":            linkedin_writer.render,
+    "âš™ï¸ ConfiguraciÃ³n de Umbrales":             thresholds.render,
+    "ðŸ›¡ï¸ Monitor de Infraestructura":            infra_monitor.render,
+    "ðŸ’° Control de Costes y MÃ¡rgenes":          billing.render,
+    "ðŸ“‚ Historial de Generaciones":             history.render,
+    "ðŸ¤– GestiÃ³n de Agentes Orquestadores":      agents_manager.render,
+    "ðŸŽ­ GalerÃ­a de Estilos Pixar":              pixar_gallery.render,
+    "âš¡ OptimizaciÃ³n de Prompts":               prompt_optimizer.render,
+    "ðŸ“¬ Logs del Sistema en Vivo":              logs.render,
+    "ðŸ”® ConfiguraciÃ³n de MerlÃ­n AI":            settings.render,
+}
+
+
+def dispatch(selected_view: str) -> None:
+    render_fn = VIEWS_REGISTRY.get(selected_view)
+    if render_fn:
+        render_fn()
+    else:
+        st.error(f"Vista '{selected_view}' no registrada en VIEWS_REGISTRY.")
+
+=== session.py ===
+# frontend/core/session.py
+
+import streamlit as st
+from frontend.core.persistence import cargar_estado_local
+
+_SESSION_INITIALIZED_KEY = "_merlin_session_ready"
+
+
+def init_session() -> None:
+    if st.session_state.get(_SESSION_INITIALIZED_KEY):
+        return
+
+    cargar_estado_local()
+
+    st.session_state.setdefault("panic_ideas", [])
+    st.session_state.setdefault("selected_panic_prompt", "")
+    st.session_state.setdefault("_session_id", "merlin-session-001")
+
+    st.session_state[_SESSION_INITIALIZED_KEY] = True
+
+=== __init__.py ===
+
+=== agents_manager.py ===
+# frontend/views/agents_manager.py
+import streamlit as st
+
+def render() -> None:
+    st.subheader("ðŸ¤– GestiÃ³n de Agentes Orquestadores")
+    st.write("Panel de asignaciÃ³n y monitorizaciÃ³n de agentes de Inteligencia Artificial.")
+
+=== billing.py ===
+# frontend/views/billing.py
+import streamlit as st
+
+def render() -> None:
+    st.subheader("ðŸ’° Control de Costes y MÃ¡rgenes")
+    st.write("Seguimiento financiero, consumo de APIs y mÃ¡rgenes de beneficio.")
+
+=== dashboard.py ===
+# frontend/views/dashboard.py
+import streamlit as st
+
+def render() -> None:
+    """
+    Punto de entrada Ãºnico para esta vista.
+    - Sin parÃ¡metros: lee estado desde st.session_state.
+    - Sin retorno: escribe directamente en el canvas de Streamlit.
+    """
+    st.subheader("ðŸ›¸ Dashboard General Â· Panel de Control")
+    st.write("Bienvenido al mÃ³dulo central de MerlÃ­n AI 2.0")
+
+=== history.py ===
+import streamlit as st
+from core.gallery import render_gallery_image, clear_gallery, get_gallery_count
+
+def render() -> None:
+    st.subheader("ðŸ“‚ Historial de Generaciones")
+    
+    galeria = st.session_state.get("galeria", [])
+    
+    if not galeria:
+        st.info("La galerÃ­a estÃ¡ vacÃ­a.")
+        return
+        
+    st.caption(f"{get_gallery_count()} generaciones en sesiÃ³n.")
+    
+    if st.button("ðŸ—‘ Limpiar galerÃ­a"):
+        clear_gallery()
+        st.rerun()
+        
+    st.divider()
+    
+    cols_per_row = 3
+    for i in range(0, len(galeria), cols_per_row):
+        cols = st.columns(cols_per_row)
+        for col, record in zip(cols, galeria[i:i + cols_per_row]):
+            with col:
+                # Renderizamos la imagen primero
+                render_gallery_image(record)
+                
+                # SustituciÃ³n de div con clase gallery-card por contenedor nativo
+                with st.container(border=True):
+                    st.write(f"ðŸ†” **ID:** {record['entry_id']}")
+                    st.write(f"ðŸŽ¨ **Estilo:** {record['style']}")
+                    st.write(f"ðŸ¤– **Agente:** {record['agent']}")
+                    st.caption(f"ðŸ• {record['timestamp']}")
+                    st.divider()
+                    st.caption("ðŸ“ **Prompt:**")
+                    st.write(f"{record['prompt'][:80]}{'...' if len(record['prompt']) > 80 else ''}")
+
+=== image_generator.py ===
+# frontend/views/image_generator.py
+import streamlit as st
+from components.panic_button import render_panic_button
+from core.async_runner import run_with_spinner
+from core.gallery import save_to_gallery
+from core.prompt_loader import load_panic_pools
+
+def render() -> None:
+    st.subheader("Generador de ImÃ¡genes Â· FLUX Dev")
+
+    # â”€â”€ BotÃ³n de PÃ¡nico Creativo â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    render_panic_button()
+    st.divider()
+
+    # â”€â”€ Formulario de generaciÃ³n â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    st.subheader("âš™ï¸ Configurar generaciÃ³n")
+    pools = load_panic_pools()
+
+    camera_labels  = ["â€” Selecciona â€”"] + [
+        c["name"] for c in _load_cameras_full()
+    ]
+    style_labels   = ["â€” Selecciona â€”"] + [
+        s["name"] for s in _load_styles_full()
+    ]
+
+    prompt = st.text_area(
+        "Prompt",
+        value=st.session_state.get("selected_panic_prompt", ""),
+        placeholder="Describe la imagen o usa el BotÃ³n de PÃ¡nico Creativo...",
+        height=100,
+        key="prompt_input",
+    )
+
+    c1, c2 = st.columns(2)
+    c1.selectbox("CÃ¡mara",           camera_labels, key="sel_camera")
+    c2.selectbox("Estilo artÃ­stico",  style_labels,  key="sel_style")
+
+    c3, c4 = st.columns(2)
+    c3.slider(
+        "Inference steps", 1, 50, step=1,
+        key="flux_inference_steps",
+    )
+    c4.slider(
+        "Guidance scale", 1.0, 7.0, step=0.1,
+        key="default_guidance_scale",
+    )
+
+    st.divider()
+
+    col_gen, col_demo = st.columns([3, 1])
+
+    # â”€â”€ GeneraciÃ³n real (agente conectado) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    with col_gen:
+        if st.button("ðŸŽ¨ Generar imagen", use_container_width=True):
+            _prompt = st.session_state.get("prompt_input", "").strip()
+            if not _prompt:
+                st.warning("Escribe un prompt antes de generar.")
+                return
+
+            payload = {
+                "session_id":            st.session_state.get("_session_id", "demo"),
+                "prompt":                _prompt,
+                "image_size":            "landscape_16_9",
+                "num_inference_steps":   st.session_state.get("flux_inference_steps", 28),
+                "guidance_scale":        st.session_state.get("default_guidance_scale", 3.5),
+                "num_images":            1,
+                "enable_safety_checker": True,
+            }
+
+            import time
+            result = run_with_spinner(
+                fn=lambda: (
+                    time.sleep(3),
+                    {
+                        "url":    "https://picsum.photos/seed/merlin-ai-demo/512/512",
+                        "seed":   42,
+                        "width":  1024,
+                        "height": 576,
+                    }
+                )[1],
+                agent="image-generator",
+            )
+
+            if result.success and result.data:
+                st.image(
+                    result.data["url"],
+                    caption=f"Seed: {result.data.get('seed', 'â€”')} Â· "
+                            f"{result.data.get('width', 'â€”')}Ã—"
+                            f"{result.data.get('height', 'â€”')}px",
+                    use_container_width=True,
+                )
+
+                record = save_to_gallery(
+                    prompt=payload["prompt"],
+                    style=st.session_state.get("sel_style", "Sin estilo"),
+                    agent="image-generator",
+                    url=result.data["url"],
+                    is_demo=False,
+                )
+                if record:
+                    st.toast(
+                        f"âœ… Guardado en galerÃ­a Â· ID: {record.entry_id}",
+                        icon="ðŸ–¼ï¸",
+                    )
+
+    # â”€â”€ Guardado demo rÃ¡pido â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    with col_demo:
+        if st.button("ðŸ’¾ Demo", use_container_width=True, help="Guarda una entrada de demostraciÃ³n en la galerÃ­a"):
+            _prompt = st.session_state.get("prompt_input", "").strip()
+            if not _prompt:
+                st.warning("Escribe un prompt antes de guardar.")
+                return
+
+            record = save_to_gallery(
+                prompt=_prompt,
+                style=st.session_state.get("sel_style", "Sin estilo"),
+                agent="demo",
+                is_demo=True,
+            )
+            if record:
+                st.toast(
+                    f"âœ… Demo guardado Â· {len(st.session_state.galeria)} items",
+                    icon="ðŸ’¾",
+                )
+
+    # â”€â”€ Vista previa de galerÃ­a reciente â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    galeria = st.session_state.get("galeria", [])
+    if galeria:
+        st.divider()
+        st.subheader("ðŸ–¼ï¸ Ãšltimas generaciones")
+        recent = galeria[:3]
+        cols   = st.columns(len(recent))
+        for col, record in zip(cols, recent):
+            with col:
+                from core.gallery import render_gallery_image
+                render_gallery_image(record)
+                st.caption(
+                    f"{record.get('entry_id', 'â€”')} Â· "
+                    f"{record.get('timestamp', 'â€”')}"
+                )
+
+
+# â”€â”€ Helpers locales â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+import json
+from pathlib import Path
+
+_PROMPTS_DIR = Path("backend/core/prompts")
+
+@st.cache_resource
+def _load_cameras_full() -> list[dict]:
+    try:
+        with open(_PROMPTS_DIR / "cameras.json", encoding="utf-8") as f:
+            return json.load(f).get("cameras", [])
+    except Exception:
+        return []
+
+@st.cache_resource
+def _load_styles_full() -> list[dict]:
+    try:
+        with open(_PROMPTS_DIR / "styles.json", encoding="utf-8") as f:
+            return json.load(f).get("styles", [])
+    except Exception:
+        return []
+
+=== infra_monitor.py ===
+# frontend/views/infra_monitor.py
+import streamlit as st
+
+def render() -> None:
+    st.subheader("ðŸ›¡ï¸ Monitor de Infraestructura")
+    st.write("Estado de los servidores, contenedores y servicios en tiempo real.")
+
+=== linkedin_writer.py ===
+# frontend/views/linkedin_writer.py
+import streamlit as st
+
+def render() -> None:
+    st.subheader("âœï¸ Redactor LinkedIn (Claude)")
+    st.write("Generador automatizado de posts profesionales optimizados para engagement.")
+
+=== logs.py ===
+# frontend/views/logs.py
+import streamlit as st
+
+def render() -> None:
+    st.subheader("ðŸ“¬ Logs del Sistema en Vivo")
+    st.write("Consola de salida con los eventos de backend y trazas del sistema.")
+
+=== market_intel.py ===
+# frontend/views/market_intel.py
+import time
+import streamlit as st
+from core.async_runner import run_with_spinner
+
+def render() -> None:
+    st.subheader("Inteligencia de Mercado Â· Perplexity + Claude")
+
+    niche = st.text_input(
+        "Nicho de mercado",
+        placeholder="AI image generation for e-commerce",
+    )
+
+    if st.button("ðŸ“ˆ Analizar tendencias"):
+        if not niche.strip():
+            st.warning("Escribe un nicho antes de analizar.")
+            return
+
+        # de backend.agents.marketing.backlinking_agent import backlinking_agent
+        # result = run_with_spinner(
+        #      fn=lambda: backlinking_agent.analyze({
+        #          "session_id": st.session_state.get("session_id", "demo"),
+        #          "target_niche": niche,
+        #      }),
+        #      agent="market-intel",
+        # )
+
+        # SimulaciÃ³n activa hasta conexiÃ³n real de la API
+        result = run_with_spinner(
+            fn=lambda: (time.sleep(4), {"trend_summary": "Demo trend"})[1],
+            agent="market-intel",
+        )
+
+        if result.success and result.data:
+            st.mst.subheader("ðŸ“Š Tendencia detectada")
+            st.info(result.data.get("trend_summary", ""))
+
+=== pixar_gallery.py ===
+# frontend/views/pixar_gallery.py
+import streamlit as st
+
+def render() -> None:
+    st.subheader("ðŸŽ­ GalerÃ­a de Estilos Pixar")
+    st.write("VisualizaciÃ³n y gestiÃ³n de creaciones artÃ­sticas en formato 3D animado.")
+
+=== prompt_optimizer.py ===
+# frontend/views/prompt_optimizer.py
+import streamlit as st
+
+def render() -> None:
+    st.subheader("âš¡ OptimizaciÃ³n de Prompts")
+    st.write("Refactorizador automÃ¡tico de instrucciones para exprimir los modelos LLM.")
+
+=== settings.py ===
+# frontend/views/settings.py
+import streamlit as st
+
+def render() -> None:
+    st.subheader("ðŸ”® ConfiguraciÃ³n de MerlÃ­n AI")
+    st.write("Ajustes generales de la aplicaciÃ³n y gestiÃ³n de llaves API.")
+
+=== thresholds.py ===
+# frontend/views/thresholds.py
+
+import streamlit as st
+from core.persistence import guardar_estado_local
+
+def render() -> None:
+    st.subheader("ConfiguraciÃ³n de Umbrales Operativos")
+
+    # key= coincide exactamente con PERSISTIBLE_KEYS
+    # Streamlit lee y escribe el valor directamente en session_state
+    st.slider(
+        "Coste mÃ¡ximo por imagen (USD)",
+        0.001, 0.100, step=0.001,
+        key="max_cost_per_image_usd",
+    )
+    st.slider(
+        "Coste mÃ¡ximo por vÃ­deo (USD)",
+        0.010, 0.300, step=0.005,
+        key="max_cost_per_video_usd",
+    )
+    st.slider(
+        "Margen mÃ­nimo requerido (%)",
+        50.0, 90.0, step=0.5,
+        key="margin_floor_pct",
+    )
+    st.slider(
+        "Inference steps FLUX",
+        1, 50, step=1,
+        key="flux_inference_steps",
+    )
+    st.slider(
+        "Guidance scale FLUX",
+        1.0, 7.0, step=0.1,
+        key="default_guidance_scale",
+    )
+
+    if st.button("ðŸ’¾ Guardar umbrales"):
+        ok = guardar_estado_local()
+        st.toast("âœ… Umbrales persistidos." if ok else "âŒ Error al persistir.")
+
+=== upscaler.py ===
+# frontend/views/upscaler.py
+import streamlit as st
+
+def render() -> None:
+    st.subheader("ðŸ” Reescalado 4K Nativo (FAL.AI)")
+    st.write("Herramienta de optimizaciÃ³n y escalado de imÃ¡genes a alta resoluciÃ³n.")
+
+=== video_gateway.py ===
+# frontend/views/video_gateway.py
+import streamlit as st
+
+def render() -> None:
+    st.subheader("ðŸŽ¬ Pasarela de Video AI")
+    st.write("MÃ³dulo de procesamiento y generaciÃ³n de clips de video.")
+
+=== __init__.py ===
+# frontend/views/__init__.py
+from . import dashboard
+from . import image_generator
+from . import video_gateway
+from . import upscaler
+from . import market_intel
+from . import linkedin_writer
+from . import thresholds
+from . import infra_monitor
+from . import billing
+from . import history
+from . import agents_manager
+from . import pixar_gallery
+from . import prompt_optimizer
+from . import logs
+from . import settings
+

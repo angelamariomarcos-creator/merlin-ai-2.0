@@ -1,7 +1,7 @@
 # frontend/views/market_intel.py
 import time
 import streamlit as st
-from core.async_runner import run_with_spinner
+from frontend.core.async_runner import run_with_spinner
 
 def render() -> None:
     st.subheader("Inteligencia de Mercado · Perplexity + Claude")
@@ -16,21 +16,11 @@ def render() -> None:
             st.warning("Escribe un nicho antes de analizar.")
             return
 
-        # de backend.agents.marketing.backlinking_agent import backlinking_agent
-        # result = run_with_spinner(
-        #      fn=lambda: backlinking_agent.analyze({
-        #          "session_id": st.session_state.get("session_id", "demo"),
-        #          "target_niche": niche,
-        #      }),
-        #      agent="market-intel",
-        # )
-
-        # Simulación activa hasta conexión real de la API
         result = run_with_spinner(
             fn=lambda: (time.sleep(4), {"trend_summary": "Demo trend"})[1],
             agent="market-intel",
         )
 
         if result.success and result.data:
-            st.mst.subheader("📊 Tendencia detectada")
+            st.subheader("📊 Tendencia detectada")
             st.info(result.data.get("trend_summary", ""))
