@@ -5,15 +5,11 @@ import httpx
 import streamlit as st
 
 
-def _get_fal_key() -> str:
+def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
     key = os.environ.get("FAL_KEY", "")
     if not key:
-        st.error("FAL_KEY no encontrada en secrets.")
-    return key
+        raise ValueError("FAL_KEY no configurada en secrets.")
 
-
-def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
-    key = _get_fal_key()
     headers = {
         "Authorization": f"Key {key}",
         "Content-Type": "application/json",
@@ -27,20 +23,24 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
         "enable_safety_checker": True,
     }
 
-    # Submit a la queue
+    # Submit
     with httpx.Client(timeout=30) as client:
-        resp = client.post("https://queue.fal.run/fal-ai/flux/dev", json=payload, headers=headers)
+        resp = client.post(
+            "https://queue.fal.run/fal-ai/flux/dev",
+            json=payload,
+            headers=headers,
+        )
         resp.raise_for_status()
-        data = resp.json()
+        submit_data = resp.json()
 
-    request_id = data.get("request_id")
-    if not request_id:
-        raise ValueError(f"No request_id en respuesta: {data}")
+    # FAL devuelve response_url y status_url en el submit
+    response_url = submit_data.get("response_url")
+    status_url = submit_data.get("status_url")
 
-    # Poll status
-    status_url = f"https://queue.fal.run/fal-ai/flux/dev/requests/{request_id}/status"
-    result_url = f"https://queue.fal.run/fal-ai/flux/dev/requests/{request_id}"
+    if not response_url:
+        raise ValueError(f"No response_url en submit: {submit_data}")
 
+    # Poll usando status_url (GET) hasta COMPLETED
     for _ in range(60):
         time.sleep(3)
         with httpx.Client(timeout=30) as client:
@@ -50,9 +50,9 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
 
         status = status_data.get("status")
         if status == "COMPLETED":
-            # Fetch result
+            # Fetch resultado final con response_url (GET)
             with httpx.Client(timeout=30) as client:
-                res = client.get(result_url, headers=headers)
+                res = client.get(response_url, headers=headers)
                 res.raise_for_status()
                 result = res.json()
             images = result.get("images", [])
@@ -60,9 +60,9 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
                 return {"url": images[0]["url"], "seed": result.get("seed", 0)}
             raise ValueError("No images en resultado.")
         elif status in ("FAILED", "ERROR"):
-            raise ValueError(f"FAL.AI error: {status_data}")
+            raise ValueError(f"FAL.AI fallo: {status_data}")
 
-    raise TimeoutError("FAL.AI no respondio en tiempo.")
+    raise TimeoutError("FAL.AI no respondio en tiempo limite.")
 
 
 def render() -> None:
@@ -107,4 +107,4 @@ def render() -> None:
                 st.toast("✅ Imagen guardada en galería", icon="🖼️")
 
             except Exception as e:
-                st.error(f"❌ Error generando imagen: {e}")
+                st.error(f"❌ Error: {e}")
