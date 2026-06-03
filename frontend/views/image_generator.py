@@ -27,7 +27,7 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
         "enable_safety_checker": True,
     }
 
-    # Submit
+    # Submit a la queue
     with httpx.Client(timeout=30) as client:
         resp = client.post("https://queue.fal.run/fal-ai/flux/dev", json=payload, headers=headers)
         resp.raise_for_status()
@@ -37,22 +37,30 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
     if not request_id:
         raise ValueError(f"No request_id en respuesta: {data}")
 
-    # Poll
+    # Poll status
+    status_url = f"https://queue.fal.run/fal-ai/flux/dev/requests/{request_id}/status"
     result_url = f"https://queue.fal.run/fal-ai/flux/dev/requests/{request_id}"
+
     for _ in range(60):
         time.sleep(3)
         with httpx.Client(timeout=30) as client:
-            r = client.get(result_url, headers=headers)
+            r = client.get(status_url, headers=headers)
             r.raise_for_status()
-            result = r.json()
+            status_data = r.json()
 
-        status = result.get("status")
+        status = status_data.get("status")
         if status == "COMPLETED":
+            # Fetch result
+            with httpx.Client(timeout=30) as client:
+                res = client.get(result_url, headers=headers)
+                res.raise_for_status()
+                result = res.json()
             images = result.get("images", [])
             if images:
                 return {"url": images[0]["url"], "seed": result.get("seed", 0)}
+            raise ValueError("No images en resultado.")
         elif status in ("FAILED", "ERROR"):
-            raise ValueError(f"FAL.AI error: {result}")
+            raise ValueError(f"FAL.AI error: {status_data}")
 
     raise TimeoutError("FAL.AI no respondio en tiempo.")
 
@@ -60,7 +68,7 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
 def render() -> None:
     st.subheader("🎨 Generador de Imagenes · FLUX Dev")
 
-    prompt = st.text_area(
+    st.text_area(
         "Prompt",
         value=st.session_state.get("selected_panic_prompt", ""),
         placeholder="Describe la imagen...",
