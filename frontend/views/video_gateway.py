@@ -15,15 +15,15 @@ def _generate_video(image_url: str, prompt: str) -> str:
         "Content-Type": "application/json",
     }
 
-    # Submit a SeedAnce
     with httpx.Client(timeout=30) as client:
         resp = client.post(
-            "https://queue.fal.run/fal-ai/seedance-v1-lite",
+            "https://queue.fal.run/fal-ai/bytedance/seedance/v1/lite/image-to-video",
             json={
                 "image_url": image_url,
                 "prompt": prompt,
-                "duration": 5,
+                "duration": "5",
                 "resolution": "720p",
+                "aspect_ratio": "16:9",
             },
             headers=headers,
         )
@@ -36,7 +36,6 @@ def _generate_video(image_url: str, prompt: str) -> str:
     if not response_url:
         raise ValueError(f"No response_url: {submit_data}")
 
-    # Poll
     for _ in range(80):
         time.sleep(4)
         with httpx.Client(timeout=30) as client:
@@ -61,12 +60,10 @@ def _generate_video(image_url: str, prompt: str) -> str:
 
 
 def render() -> None:
-    st.subheader("🎬 Pasarela de Video AI · SeedAnce")
-    st.caption("Convierte una imagen en un clip de video de 5 segundos.")
-
+    st.subheader("🎬 Pasarela de Video AI · SeedAnce Lite")
+    st.caption("Anima una imagen en un clip de 5 segundos a 720p.")
     st.divider()
 
-    # Opcion 1: usar imagen de la galeria
     galeria = st.session_state.get("galeria", [])
     image_url = ""
 
@@ -104,14 +101,13 @@ def render() -> None:
             st.warning("Escribe un prompt de movimiento.")
             return
 
-        with st.spinner("🎬 Generando video con SeedAnce... (puede tardar 1-2 min)"):
+        with st.spinner("🎬 Generando con SeedAnce... (1-2 min)"):
             try:
                 video_url = _generate_video(image_url, prompt.strip())
                 st.video(video_url)
                 st.success("✅ Video generado.")
                 st.markdown(f"[⬇️ Descargar video]({video_url})")
 
-                # Guardar en session_state
                 if "videos" not in st.session_state:
                     st.session_state.videos = []
                 st.session_state.videos.insert(0, {
@@ -124,7 +120,6 @@ def render() -> None:
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
-    # Historial de videos
     videos = st.session_state.get("videos", [])
     if videos:
         st.divider()
