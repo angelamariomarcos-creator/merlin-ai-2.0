@@ -5,6 +5,33 @@ import httpx
 import streamlit as st
 
 
+def _upload_image_to_fal(image_bytes: bytes, filename: str) -> str:
+    """Sube imagen a FAL.AI storage y devuelve la URL."""
+    key = os.environ.get("FAL_KEY", "")
+    headers = {"Authorization": f"Key {key}"}
+    with httpx.Client(timeout=60) as client:
+        resp = client.post(
+            "https://rest.fal.run/storage/upload/initiate",
+            headers=headers,
+            json={"file_name": filename, "content_type": "image/jpeg"},
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+    upload_url = data["upload_url"]
+    file_url = data["file_url"]
+
+    with httpx.Client(timeout=60) as client:
+        resp = client.put(
+            upload_url,
+            content=image_bytes,
+            headers={"Content-Type": "image/jpeg"},
+        )
+        resp.raise_for_status()
+
+    return file_url
+
+
 def _generate_video(image_url: str, prompt: str) -> str:
     key = os.environ.get("FAL_KEY", "")
     if not key:
@@ -64,9 +91,10 @@ def render() -> None:
     st.caption("Anima una imagen en un clip de 5 segundos a 720p.")
     st.divider()
 
-    galeria = st.session_state.get("galeria", [])
     image_url = ""
 
+    # ── Opción 1: Galería ─────────────────────────────────
+    galeria = st.session_state.get("galeria", [])
     if galeria:
         st.subheader("📷 Usar imagen de la galería")
         opciones = ["— Selecciona —"] + [
@@ -80,12 +108,31 @@ def render() -> None:
             if image_url:
                 st.image(image_url, width=300)
 
+    # ── Opción 2: Subir desde PC ──────────────────────────
+    st.subheader("💻 Subir imagen desde tu PC")
+    uploaded = st.file_uploader(
+        "Selecciona una imagen (JPG, PNG, WEBP)",
+        type=["jpg", "jpeg", "png", "webp"],
+        key="video_upload",
+    )
+    if uploaded:
+        st.image(uploaded, width=300)
+        with st.spinner("Subiendo imagen..."):
+            try:
+                image_url = _upload_image_to_fal(uploaded.read(), uploaded.name)
+                st.success("✅ Imagen subida correctamente.")
+            except Exception as e:
+                st.error(f"❌ Error subiendo imagen: {e}")
+
+    # ── Opción 3: URL manual ──────────────────────────────
     st.subheader("🔗 O pega una URL de imagen")
     url_input = st.text_input("URL de imagen", placeholder="https://...", key="video_url_input")
     if url_input.strip():
         image_url = url_input.strip()
         st.image(image_url, width=300)
 
+    # ── Prompt y generación ───────────────────────────────
+    st.divider()
     prompt = st.text_area(
         "Prompt de movimiento",
         placeholder="Camera slowly zooms in, gentle wind moves the hair, cinematic...",
@@ -95,7 +142,7 @@ def render() -> None:
 
     if st.button("🎬 Generar video", use_container_width=True):
         if not image_url:
-            st.warning("Selecciona o pega una imagen base.")
+            st.warning("Selecciona, sube o pega una imagen base.")
             return
         if not prompt.strip():
             st.warning("Escribe un prompt de movimiento.")
@@ -120,6 +167,7 @@ def render() -> None:
             except Exception as e:
                 st.error(f"❌ Error: {e}")
 
+    # ── Historial ─────────────────────────────────────────
     videos = st.session_state.get("videos", [])
     if videos:
         st.divider()
