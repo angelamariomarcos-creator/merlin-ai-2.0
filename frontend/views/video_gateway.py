@@ -32,7 +32,7 @@ def _generate_video(image_url: str, prompt: str) -> str:
                 "prompt": prompt,
                 "duration": "5",
                 "resolution": "720p",
-                "aspect_ratio": "16:9",
+               "aspect_ratio": "auto",
             },
             headers=headers,
         )
