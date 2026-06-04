@@ -4,7 +4,16 @@ import streamlit as st
 def init_session() -> None:
     if st.session_state.get("_ready"):
         return
-    st.session_state.setdefault("galeria", [])
+
+    # Cargar galería persistida de GitHub
+    try:
+        from frontend.core.persistence import cargar_galeria
+        galeria = cargar_galeria()
+        st.session_state["galeria"] = galeria
+    except Exception:
+        st.session_state.setdefault("galeria", [])
+
+    st.session_state.setdefault("videos", [])
     st.session_state.setdefault("panic_ideas", [])
     st.session_state.setdefault("selected_panic_prompt", "")
     st.session_state.setdefault("flux_steps", 28)

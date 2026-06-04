@@ -146,6 +146,11 @@ def render() -> None:
                     "camera": sel_camera,
                 })
                 st.toast("✅ Imagen guardada en galería", icon="🖼️")
+                try:
+                    from frontend.core.persistence import guardar_galeria
+                    guardar_galeria()
+                except Exception:
+                    pass
 
             except Exception as e:
                 st.error(f"❌ Error: {e}")
