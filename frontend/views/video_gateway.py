@@ -1,35 +1,17 @@
 # frontend/views/video_gateway.py
 import time
 import os
+import base64
 import httpx
 import streamlit as st
 
 
-def _upload_image_to_fal(image_bytes: bytes, filename: str) -> str:
-    """Sube imagen a FAL.AI storage y devuelve la URL."""
-    key = os.environ.get("FAL_KEY", "")
-    headers = {"Authorization": f"Key {key}"}
-    with httpx.Client(timeout=60) as client:
-        resp = client.post(
-            "https://rest.fal.run/storage/upload/initiate",
-            headers=headers,
-            json={"file_name": filename, "content_type": "image/jpeg"},
-        )
-        resp.raise_for_status()
-        data = resp.json()
-
-    upload_url = data["upload_url"]
-    file_url = data["file_url"]
-
-    with httpx.Client(timeout=60) as client:
-        resp = client.put(
-            upload_url,
-            content=image_bytes,
-            headers={"Content-Type": "image/jpeg"},
-        )
-        resp.raise_for_status()
-
-    return file_url
+def _to_data_url(image_bytes: bytes, filename: str) -> str:
+    """Convierte bytes a base64 data URL que FAL.AI acepta directamente."""
+    ext = filename.split(".")[-1].lower()
+    mime = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "webp": "image/webp"}.get(ext, "image/jpeg")
+    b64 = base64.b64encode(image_bytes).decode("utf-8")
+    return f"data:{mime};base64,{b64}"
 
 
 def _generate_video(image_url: str, prompt: str) -> str:
@@ -117,12 +99,8 @@ def render() -> None:
     )
     if uploaded:
         st.image(uploaded, width=300)
-        with st.spinner("Subiendo imagen..."):
-            try:
-                image_url = _upload_image_to_fal(uploaded.read(), uploaded.name)
-                st.success("✅ Imagen subida correctamente.")
-            except Exception as e:
-                st.error(f"❌ Error subiendo imagen: {e}")
+        image_url = _to_data_url(uploaded.read(), uploaded.name)
+        st.success("✅ Imagen lista.")
 
     # ── Opción 3: URL manual ──────────────────────────────
     st.subheader("🔗 O pega una URL de imagen")
