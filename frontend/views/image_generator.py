@@ -9,6 +9,18 @@ import streamlit as st
 _ROOT = Path(__file__).resolve().parent.parent.parent
 _PROMPTS = _ROOT / "backend" / "core" / "prompts"
 
+# Imágenes demo variadas — sin coste
+DEMO_IMAGES = [
+    "https://picsum.photos/seed/merlin1/1024/576",
+    "https://picsum.photos/seed/merlin2/1024/576",
+    "https://picsum.photos/seed/merlin3/1024/576",
+    "https://picsum.photos/seed/merlin4/1024/576",
+    "https://picsum.photos/seed/merlin5/1024/576",
+    "https://picsum.photos/seed/merlin6/1024/576",
+    "https://picsum.photos/seed/merlin7/1024/576",
+    "https://picsum.photos/seed/merlin8/1024/576",
+]
+
 
 @st.cache_resource
 def _load_cameras() -> list[dict]:
@@ -28,7 +40,11 @@ def _load_styles() -> list[dict]:
         return []
 
 
-def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
+def _is_demo_mode() -> bool:
+    return os.environ.get("DEMO_MODE", "false").lower() == "true"
+
+
+def _generate_real(prompt: str, steps: int, guidance: float) -> dict:
     key = os.environ.get("FAL_KEY", "")
     if not key:
         raise ValueError("FAL_KEY no configurada en secrets.")
@@ -58,7 +74,7 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
     status_url = submit_data.get("status_url")
 
     if not response_url:
-        raise ValueError(f"No response_url en submit: {submit_data}")
+        raise ValueError(f"No response_url: {submit_data}")
 
     for _ in range(60):
         time.sleep(3)
@@ -83,14 +99,27 @@ def _generate_image(prompt: str, steps: int, guidance: float) -> dict:
     raise TimeoutError("FAL.AI no respondio en tiempo limite.")
 
 
+def _generate_demo(prompt: str) -> dict:
+    """Simula generación sin coste — para testing."""
+    time.sleep(2)
+    import hashlib
+    idx = int(hashlib.md5(prompt.encode()).hexdigest(), 16) % len(DEMO_IMAGES)
+    return {"url": DEMO_IMAGES[idx], "seed": 42}
+
+
 def render() -> None:
+    demo_mode = _is_demo_mode()
+
     st.subheader("🎨 Generador de Imagenes · FLUX Dev")
+
+    if demo_mode:
+        st.warning("🧪 **MODO DEMO** — Las imágenes son placeholders. Cambia `DEMO_MODE=false` en Secrets para generar con FLUX real.")
 
     cameras = _load_cameras()
     styles  = _load_styles()
 
-    camera_options = ["— Sin cámara —"] + [f"{c['label_es']}" for c in cameras]
-    style_options  = ["— Sin estilo —"]  + [f"{s['label_es']}" for s in styles]
+    camera_options = ["— Sin cámara —"] + [c["label_es"] for c in cameras]
+    style_options  = ["— Sin estilo —"]  + [s["label_es"] for s in styles]
 
     st.text_area(
         "Prompt",
@@ -105,16 +134,17 @@ def render() -> None:
     sel_style  = c2.selectbox("🎨 Estilo", style_options,  key="sel_style")
 
     c3, c4 = st.columns(2)
-    c3.slider("Inference steps", 1, 50, value=28, step=1,   key="flux_steps")
+    c3.slider("Inference steps", 1, 50, value=28, step=1,       key="flux_steps")
     c4.slider("Guidance scale",  1.0, 7.0, value=3.5, step=0.1, key="guidance_scale")
 
-    if st.button("🎨 Generar imagen", use_container_width=True):
+    btn_label = "🧪 Generar imagen (DEMO)" if demo_mode else "🎨 Generar imagen"
+
+    if st.button(btn_label, use_container_width=True):
         _prompt = st.session_state.get("prompt_input", "").strip()
         if not _prompt:
             st.warning("Escribe un prompt antes de generar.")
             return
 
-        # Enriquecer prompt con fragmentos de cámara y estilo
         enriched = _prompt
         if sel_camera != "— Sin cámara —":
             cam = next((c for c in cameras if c["label_es"] == sel_camera), None)
@@ -125,15 +155,22 @@ def render() -> None:
             if sty:
                 enriched += f", {sty['prompt_fragment']}"
 
-        with st.spinner("🔮 Generando con FLUX Dev..."):
+        spinner_msg = "🧪 Modo demo — generando placeholder..." if demo_mode else "🔮 Generando con FLUX Dev..."
+
+        with st.spinner(spinner_msg):
             try:
-                result = _generate_image(
-                    prompt=enriched,
-                    steps=st.session_state.get("flux_steps", 28),
-                    guidance=st.session_state.get("guidance_scale", 3.5),
-                )
+                if demo_mode:
+                    result = _generate_demo(enriched)
+                else:
+                    result = _generate_real(
+                        prompt=enriched,
+                        steps=st.session_state.get("flux_steps", 28),
+                        guidance=st.session_state.get("guidance_scale", 3.5),
+                    )
+
                 url = result["url"]
-                st.image(url, caption=f"Seed: {result.get('seed', '—')}", use_container_width=True)
+                caption = f"[DEMO] Seed: {result.get('seed', '—')}" if demo_mode else f"Seed: {result.get('seed', '—')}"
+                st.image(url, caption=caption, use_container_width=True)
 
                 if "galeria" not in st.session_state:
                     st.session_state.galeria = []
@@ -144,13 +181,23 @@ def render() -> None:
                     "timestamp": time.strftime("%Y-%m-%d %H:%M"),
                     "style": sel_style,
                     "camera": sel_camera,
+                    "is_demo": demo_mode,
                 })
-                st.toast("✅ Imagen guardada en galería", icon="🖼️")
-                try:
-                    from frontend.core.persistence import guardar_galeria
-                    guardar_galeria()
-                except Exception:
-                    pass
+                st.toast("🧪 Demo guardado" if demo_mode else "✅ Imagen guardada en galería", icon="🖼️")
 
             except Exception as e:
                 st.error(f"❌ Error: {e}")
+
+    galeria = st.session_state.get("galeria", [])
+    if galeria:
+        st.divider()
+        st.subheader("🖼️ Últimas generaciones")
+        recent = galeria[:3]
+        cols = st.columns(len(recent))
+        for col, record in zip(cols, recent):
+            with col:
+                if record.get("url"):
+                    st.image(record["url"], use_container_width=True)
+                st.caption(f"{record.get('timestamp', '—')}")
+                if record.get("is_demo"):
+                    st.caption("🧪 Demo")
