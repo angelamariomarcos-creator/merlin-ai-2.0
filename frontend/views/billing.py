@@ -1,127 +1,69 @@
-# frontend/views/linkedin_writer.py
-import time
-import threading
-import httpx
+# frontend/views/billing.py
 import streamlit as st
-import os
+import time
 
 
-def _generate_post_groq(topic: str, tone: str, length: str) -> str:
-    try:
-        key = os.environ.get("GROQ_API_KEY", "")
-        if not key:
-            return "❌ GROQ_API_KEY no configurada en Streamlit Secrets."
-
-        tone_map = {
-            "Profesional": "tono profesional y autoritativo",
-            "Cercano": "tono cercano, humano y conversacional",
-            "Inspiracional": "tono inspiracional y motivador",
-            "Humorístico": "tono con humor inteligente e ironía",
-        }
-        length_map = {
-            "Corto (150 palabras)": 150,
-            "Medio (300 palabras)": 300,
-            "Largo (500 palabras)": 500,
-        }
-
-        prompt = f"""Eres un experto en contenido de LinkedIn con miles de seguidores.
-Escribe un post de LinkedIn sobre: "{topic}"
-
-Requisitos:
-- Tono: {tone_map.get(tone, 'profesional')}
-- Longitud: aproximadamente {length_map.get(length, 300)} palabras
-- Incluye un gancho potente en la primera línea
-- Usa saltos de línea para facilitar la lectura
-- Termina con una pregunta para fomentar comentarios
-- Añade 5 hashtags relevantes al final
-- Escribe en español
-- NO uses asteriscos para negrita, usa mayúsculas si necesitas énfasis
-
-El post debe ser auténtico y generar engagement real."""
-
-        with httpx.Client(timeout=30) as client:
-            resp = client.post(
-                "https://api.groq.com/openai/v1/chat/completions",
-                headers={
-                    "Authorization": f"Bearer {key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": "llama-3.3-70b-versatile",
-                    "messages": [{"role": "user", "content": prompt}],
-                    "max_tokens": 800,
-                    "temperature": 0.8,
-                },
-            )
-            resp.raise_for_status()
-            return resp.json()["choices"][0]["message"]["content"]
-    except Exception as e:
-        return f"❌ Error: {e}"
-
-
-def _generate_thread(topic: str, tone: str, length: str, result_holder: list, error_holder: list) -> None:
-    try:
-        post = _generate_post_groq(topic, tone, length)
-        result_holder.append(post)
-    except Exception as e:
-        error_holder.append(str(e))
+# Costes aproximados por operación en FAL.AI
+COSTS = {
+    "imagen_flux": 0.003,      # FLUX Dev por imagen
+    "video_seedance": 0.025,   # SeedAnce Lite 5s
+    "upscale_aura": 0.001,     # AuraSR por imagen
+}
 
 
 def render() -> None:
-    st.subheader("✍️ Redactor LinkedIn · Groq Llama 3.3")
-    st.caption("Posts profesionales optimizados para engagement · Coste cero")
+    st.subheader("💰 Control de Costes y Márgenes")
+    st.caption("Seguimiento de uso y costes estimados de APIs")
     st.divider()
 
-    topic = st.text_area(
-        "¿Sobre qué quieres escribir?",
-        placeholder="ej: Cómo la IA está cambiando el comercio tradicional...",
-        height=80,
-        key="linkedin_topic",
+    # ── Resumen de sesión ─────────────────────────────────
+    galeria = st.session_state.get("galeria", [])
+    videos  = st.session_state.get("videos", [])
+
+    n_imagenes = len(galeria)
+    n_videos   = len(videos)
+
+    coste_imagenes = n_imagenes * COSTS["imagen_flux"]
+    coste_videos   = n_videos   * COSTS["video_seedance"]
+    coste_total    = coste_imagenes + coste_videos
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("🖼️ Imágenes generadas", n_imagenes, f"~${coste_imagenes:.4f}")
+    col2.metric("🎬 Videos generados",   n_videos,   f"~${coste_videos:.4f}")
+    col3.metric("💸 Coste total sesión", f"${coste_total:.4f}", "estimado")
+
+    st.divider()
+
+    # ── Tabla de precios de referencia ────────────────────
+    st.subheader("📊 Precios de referencia FAL.AI")
+    st.table({
+        "Operación": ["Imagen FLUX Dev", "Video SeedAnce 5s", "Upscale AuraSR"],
+        "Coste aprox.": ["$0.003", "$0.025", "$0.001"],
+        "100 unidades": ["$0.30", "$2.50", "$0.10"],
+        "1000 unidades": ["$3.00", "$25.00", "$1.00"],
+    })
+
+    st.divider()
+
+    # ── Configuración de alertas ──────────────────────────
+    st.subheader("⚙️ Umbrales de alerta")
+
+    budget = st.number_input(
+        "Presupuesto máximo por sesión (USD)",
+        min_value=0.0,
+        max_value=100.0,
+        value=5.0,
+        step=0.5,
+        key="budget_limit",
     )
 
-    c1, c2 = st.columns(2)
-    tone = c1.selectbox(
-        "Tono",
-        ["Profesional", "Cercano", "Inspiracional", "Humorístico"],
-        key="linkedin_tone",
-    )
-    length = c2.selectbox(
-        "Longitud",
-        ["Corto (150 palabras)", "Medio (300 palabras)", "Largo (500 palabras)"],
-        index=1,
-        key="linkedin_length",
-    )
+    if coste_total > budget:
+        st.error(f"⚠️ Has superado el presupuesto de ${budget:.2f}. Coste actual: ${coste_total:.4f}")
+    elif coste_total > budget * 0.8:
+        st.warning(f"⚠️ Al 80% del presupuesto. Coste actual: ${coste_total:.4f}")
+    else:
+        st.success(f"✅ Dentro del presupuesto. Quedan ${budget - coste_total:.4f}")
 
-    if st.button("✍️ Generar post", use_container_width=True):
-        if not topic.strip():
-            st.warning("Escribe un tema antes de generar.")
-            return
-
-        result_holder: list = []
-        error_holder: list = []
-
-        thread = threading.Thread(
-            target=_generate_thread,
-            args=(topic.strip(), tone, length, result_holder, error_holder),
-            daemon=True,
-        )
-        thread.start()
-
-        msgs = ["✍️ Redactando post...", "🧠 Optimizando engagement...", "📝 Añadiendo hashtags..."]
-        placeholder = st.empty()
-        i = 0
-        while thread.is_alive():
-            placeholder.info(msgs[i % len(msgs)])
-            time.sleep(2)
-            i += 1
-        placeholder.empty()
-
-        if error_holder:
-            st.error(f"❌ Error: {error_holder[0]}")
-        elif result_holder:
-            post = result_holder[0]
-            st.subheader("📝 Tu post de LinkedIn")
-            st.text_area("Copia y pega en LinkedIn:", value=post, height=400, key="linkedin_result")
-            st.success("✅ Post generado. Revísalo y personalízalo antes de publicar.")
-            char_count = len(post)
-            st.caption(f"📊 {char_count} caracteres · LinkedIn permite hasta 3000")
+    st.divider()
+    st.caption("💡 Los costes son estimados. Consulta tu dashboard de FAL.AI para datos exactos.")
+    st.markdown("[🔗 Ver dashboard FAL.AI](https://fal.ai/dashboard)")
