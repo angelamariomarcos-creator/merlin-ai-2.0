@@ -2,6 +2,7 @@
 import time
 import json
 import os
+import hashlib
 from pathlib import Path
 import httpx
 import streamlit as st
@@ -9,17 +10,25 @@ import streamlit as st
 _ROOT = Path(__file__).resolve().parent.parent.parent
 _PROMPTS = _ROOT / "backend" / "core" / "prompts"
 
-# Imágenes demo variadas — sin coste
-DEMO_IMAGES = [
-    "https://picsum.photos/seed/merlin1/1024/576",
-    "https://picsum.photos/seed/merlin2/1024/576",
-    "https://picsum.photos/seed/merlin3/1024/576",
-    "https://picsum.photos/seed/merlin4/1024/576",
-    "https://picsum.photos/seed/merlin5/1024/576",
-    "https://picsum.photos/seed/merlin6/1024/576",
-    "https://picsum.photos/seed/merlin7/1024/576",
-    "https://picsum.photos/seed/merlin8/1024/576",
-]
+DEMO_KEYWORD_MAP = {
+    "playa": "beach", "mar": "ocean", "montaña": "mountain",
+    "bosque": "forest", "rio": "river", "lago": "lake",
+    "desierto": "desert", "nieve": "snow", "flor": "flowers",
+    "naturaleza": "nature", "persona": "portrait", "mujer": "woman",
+    "hombre": "man", "bebe": "baby", "niño": "child",
+    "retrato": "portrait", "cara": "face", "rockero": "rock-music",
+    "ciudad": "city", "edificio": "architecture", "calle": "street",
+    "noche": "night", "futurista": "futuristic", "castillo": "castle",
+    "perro": "dog", "gato": "cat", "caballo": "horse", "pajaro": "bird",
+    "leon": "lion", "tigre": "tiger", "lobo": "wolf", "dragon": "dragon",
+    "pantera": "panther", "comida": "food", "pizza": "pizza",
+    "cafe": "coffee", "abstracto": "abstract", "arte": "art",
+    "magia": "magic", "espacio": "space", "galaxia": "galaxy",
+    "robot": "robot", "anime": "anime", "guerra": "war",
+    "barco": "ship", "coche": "car", "moto": "motorcycle",
+    "avion": "airplane", "cohete": "rocket", "underwater": "underwater",
+    "fuego": "fire", "agua": "water", "tierra": "earth",
+}
 
 
 @st.cache_resource
@@ -42,6 +51,18 @@ def _load_styles() -> list[dict]:
 
 def _is_demo_mode() -> bool:
     return os.environ.get("DEMO_MODE", "false").lower() == "true"
+
+
+def _generate_demo(prompt: str) -> dict:
+    time.sleep(1)
+    prompt_lower = prompt.lower()
+    keyword = next(
+        (en for es, en in DEMO_KEYWORD_MAP.items() if es in prompt_lower),
+        None
+    )
+    seed = hashlib.md5(prompt.encode()).hexdigest()[:8]
+    url = f"https://picsum.photos/seed/{keyword or seed}/1024/576"
+    return {"url": url, "seed": seed}
 
 
 def _generate_real(prompt: str, steps: int, guidance: float) -> dict:
@@ -99,21 +120,13 @@ def _generate_real(prompt: str, steps: int, guidance: float) -> dict:
     raise TimeoutError("FAL.AI no respondio en tiempo limite.")
 
 
-def _generate_demo(prompt: str) -> dict:
-    """Simula generación sin coste — para testing."""
-    time.sleep(2)
-    import hashlib
-    idx = int(hashlib.md5(prompt.encode()).hexdigest(), 16) % len(DEMO_IMAGES)
-    return {"url": DEMO_IMAGES[idx], "seed": 42}
-
-
 def render() -> None:
     demo_mode = _is_demo_mode()
 
     st.subheader("🎨 Generador de Imagenes · FLUX Dev")
 
     if demo_mode:
-        st.warning("🧪 **MODO DEMO** — Las imágenes son placeholders. Cambia `DEMO_MODE=false` en Secrets para generar con FLUX real.")
+        st.warning("🧪 **MODO DEMO** — Imágenes temáticas según tu prompt. Cambia `DEMO_MODE=false` para generar con FLUX real.")
 
     cameras = _load_cameras()
     styles  = _load_styles()
@@ -134,8 +147,8 @@ def render() -> None:
     sel_style  = c2.selectbox("🎨 Estilo", style_options,  key="sel_style")
 
     c3, c4 = st.columns(2)
-    c3.slider("Inference steps", 1, 50, value=28, step=1,       key="flux_steps")
-    c4.slider("Guidance scale",  1.0, 7.0, value=3.5, step=0.1, key="guidance_scale")
+    c3.slider("Inference steps", 1, 50, value=28, step=1,        key="flux_steps")
+    c4.slider("Guidance scale",  1.0, 7.0, value=3.5, step=0.1,  key="guidance_scale")
 
     btn_label = "🧪 Generar imagen (DEMO)" if demo_mode else "🎨 Generar imagen"
 
@@ -155,12 +168,12 @@ def render() -> None:
             if sty:
                 enriched += f", {sty['prompt_fragment']}"
 
-        spinner_msg = "🧪 Modo demo — generando placeholder..." if demo_mode else "🔮 Generando con FLUX Dev..."
+        spinner_msg = "🧪 Buscando imagen temática..." if demo_mode else "🔮 Generando con FLUX Dev..."
 
         with st.spinner(spinner_msg):
             try:
                 if demo_mode:
-                    result = _generate_demo(enriched)
+                    result = _generate_demo(_prompt)
                 else:
                     result = _generate_real(
                         prompt=enriched,
@@ -169,7 +182,7 @@ def render() -> None:
                     )
 
                 url = result["url"]
-                caption = f"[DEMO] Seed: {result.get('seed', '—')}" if demo_mode else f"Seed: {result.get('seed', '—')}"
+                caption = f"[DEMO] tema detectado · Seed: {result.get('seed', '—')}" if demo_mode else f"Seed: {result.get('seed', '—')}"
                 st.image(url, caption=caption, use_container_width=True)
 
                 if "galeria" not in st.session_state:
@@ -183,7 +196,7 @@ def render() -> None:
                     "camera": sel_camera,
                     "is_demo": demo_mode,
                 })
-                st.toast("🧪 Demo guardado" if demo_mode else "✅ Imagen guardada en galería", icon="🖼️")
+                st.toast("🧪 Demo guardado" if demo_mode else "✅ Imagen guardada", icon="🖼️")
 
             except Exception as e:
                 st.error(f"❌ Error: {e}")
@@ -198,6 +211,6 @@ def render() -> None:
             with col:
                 if record.get("url"):
                     st.image(record["url"], use_container_width=True)
-                st.caption(f"{record.get('timestamp', '—')}")
+                st.caption(record.get("timestamp", "—"))
                 if record.get("is_demo"):
                     st.caption("🧪 Demo")

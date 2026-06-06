@@ -1,5 +1,6 @@
 # frontend/config/views.py
 VIEWS: list[str] = [
+    "🏠 Inicio",
     "🛸 Dashboard",
     "🎨 Generador de Imagenes",
     "🎬 Video AI",
