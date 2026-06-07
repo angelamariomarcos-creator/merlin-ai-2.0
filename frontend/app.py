@@ -206,4 +206,4 @@ def _show_app() -> None:
 
     inject_css(**THEMES[selected_theme])
     st.title(selected_view)
-    st.divider(
+    st.divider()
