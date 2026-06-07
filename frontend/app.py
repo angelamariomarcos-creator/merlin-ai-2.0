@@ -80,7 +80,6 @@ def _show_login() -> None:
                 "https://accounts.google.com/o/oauth2/auth",
                 "https://oauth2.googleapis.com/token",
                 "https://oauth2.googleapis.com/token",
-                "https://oauth2.googleapis.com/revoke",
             )
 
             result = oauth2.authorize_button(
