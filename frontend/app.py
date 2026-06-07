@@ -1,12 +1,10 @@
 # frontend/app.py
 import sys
-from pathlib import Path
-
-_ROOT = Path(__file__).resolve().parent.parent
-if str(_ROOT) not in sys.path:
-    sys.path.insert(0, str(_ROOT))
-
 import os
+
+# Forzar a Python a incluir la raíz del proyecto en las búsquedas de módulos de inmediato
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import requests
 import urllib.parse
 import streamlit as st
@@ -207,3 +205,14 @@ def _show_app() -> None:
     inject_css(**THEMES[selected_theme])
     st.title(selected_view)
     st.divider()
+    
+    # Renderizar la vista seleccionada usando el despachador
+    dispatch(selected_view)
+
+
+# --- FLUJO DE CONTROL PRINCIPAL ---
+if __name__ == "__main__":
+    if not st.session_state.get("logged_in", False):
+        _show_login()
+    else:
+        _show_app()
