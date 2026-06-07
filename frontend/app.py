@@ -7,6 +7,8 @@ if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
 import os
+import requests
+import urllib.parse
 import streamlit as st
 from frontend.config.themes import THEMES
 from frontend.config.views import VIEWS
@@ -21,9 +23,92 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+GOOGLE_AUTH_URL   = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL  = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO   = "https://www.googleapis.com/oauth2/v3/userinfo"
+
+
+def _get_oauth_config():
+    return {
+        "client_id":     os.environ.get("GOOGLE_CLIENT_ID", ""),
+        "client_secret": os.environ.get("GOOGLE_CLIENT_SECRET", ""),
+        "redirect_uri":  os.environ.get("REDIRECT_URI", "http://localhost:8501"),
+    }
+
+
+def _build_auth_url(cfg: dict) -> str:
+    params = {
+        "client_id":     cfg["client_id"],
+        "redirect_uri":  cfg["redirect_uri"],
+        "response_type": "code",
+        "scope":         "openid email profile",
+        "access_type":   "offline",
+        "prompt":        "select_account",
+    }
+    return GOOGLE_AUTH_URL + "?" + urllib.parse.urlencode(params)
+
+
+def _exchange_code_for_token(code: str, cfg: dict) -> dict:
+    resp = requests.post(GOOGLE_TOKEN_URL, data={
+        "code":          code,
+        "client_id":     cfg["client_id"],
+        "client_secret": cfg["client_secret"],
+        "redirect_uri":  cfg["redirect_uri"],
+        "grant_type":    "authorization_code",
+    }, timeout=10)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _get_user_info(access_token: str) -> dict:
+    resp = requests.get(GOOGLE_USERINFO, headers={
+        "Authorization": f"Bearer {access_token}"
+    }, timeout=10)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def _handle_oauth_callback():
+    """Procesa el código OAuth que llega en los query params tras el redirect."""
+    params = st.query_params
+    code  = params.get("code", "")
+    error = params.get("error", "")
+
+    if error:
+        st.error(f"❌ Google denegó el acceso: {error}")
+        st.query_params.clear()
+        return
+
+    if not code:
+        return
+
+    cfg = _get_oauth_config()
+    try:
+        token_data  = _exchange_code_for_token(code, cfg)
+        access_token = token_data.get("access_token", "")
+        if not access_token:
+            st.error("❌ No se recibió access_token de Google.")
+            st.query_params.clear()
+            return
+
+        user = _get_user_info(access_token)
+        st.session_state["user_email"] = user.get("email", "")
+        st.session_state["user_name"]  = user.get("name", "Usuario")
+        st.session_state["user_pic"]   = user.get("picture", "")
+        st.session_state["logged_in"]  = True
+        st.query_params.clear()
+        st.rerun()
+
+    except Exception as e:
+        st.error(f"❌ Error al autenticar: {e}")
+        st.query_params.clear()
+
 
 def _show_login() -> None:
     inject_css(**THEMES["Merlin Premium"])
+
+    # Procesar callback OAuth si viene con ?code=
+    _handle_oauth_callback()
 
     st.markdown("""
     <style>
@@ -47,6 +132,16 @@ def _show_login() -> None:
         margin-bottom: 0.3rem;
     }
     .login-subtitle { font-size: 0.9rem; color: #8A7AA0; margin-bottom: 2rem; }
+    .google-btn {
+        display: inline-flex; align-items: center; gap: 0.6rem;
+        background: #fff; color: #3c4043;
+        border: 1px solid #dadce0; border-radius: 8px;
+        padding: 0.7rem 1.5rem; font-size: 0.95rem; font-weight: 500;
+        text-decoration: none; cursor: pointer;
+        transition: box-shadow 0.2s;
+        width: 100%; justify-content: center;
+    }
+    .google-btn:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
     </style>
     """, unsafe_allow_html=True)
 
@@ -63,48 +158,17 @@ def _show_login() -> None:
         st.divider()
         st.subheader("Acceder a Merlín AI")
 
-        try:
-            from streamlit_oauth import OAuth2Component
-
-            client_id     = os.environ.get("GOOGLE_CLIENT_ID", "")
-            client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", "")
-            redirect_uri  = os.environ.get("REDIRECT_URI", "http://localhost:8501")
-
-            if not client_id or not client_secret:
-                st.error("❌ Credenciales Google OAuth no configuradas en Secrets.")
-                return
-
-            oauth2 = OAuth2Component(
-                client_id,
-                client_secret,
-                "https://accounts.google.com/o/oauth2/auth",
-                "https://oauth2.googleapis.com/token",
-                "https://oauth2.googleapis.com/token",
+        cfg = _get_oauth_config()
+        if not cfg["client_id"] or not cfg["client_secret"]:
+            st.error("❌ Credenciales Google OAuth no configuradas en Secrets.")
+        else:
+            auth_url = _build_auth_url(cfg)
+            st.markdown(
+                f'<a href="{auth_url}" target="_self" class="google-btn">'
+                f'<img src="https://www.google.com/favicon.ico" width="20"/> '
+                f'Continuar con Google</a>',
+                unsafe_allow_html=True,
             )
-
-            result = oauth2.authorize_button(
-                name="Continuar con Google",
-                icon="https://www.google.com/favicon.ico",
-                redirect_uri=redirect_uri,
-                scope="openid email profile",
-                key="google_oauth",
-                use_container_width=True,
-            )
-
-            if result and "token" in result:
-                import jwt as pyjwt
-                token    = result["token"]
-                id_token = token.get("id_token", "")
-                if id_token:
-                    payload = pyjwt.decode(id_token, options={"verify_signature": False})
-                    st.session_state["user_email"] = payload.get("email", "")
-                    st.session_state["user_name"]  = payload.get("name", "Usuario")
-                    st.session_state["user_pic"]   = payload.get("picture", "")
-                    st.session_state["logged_in"]  = True
-                    st.rerun()
-
-        except Exception as e:
-            st.error(f"❌ Error OAuth: {e}")
 
         st.divider()
         st.caption("Al acceder aceptas los términos de uso de Merlín AI.")
@@ -119,7 +183,11 @@ def _show_app() -> None:
 
     with st.sidebar:
         if user_pic:
-            st.markdown(f'<img src="{user_pic}" style="border-radius:50%;width:48px;height:48px;display:block;margin:0 auto 0.5rem;">', unsafe_allow_html=True)
+            st.markdown(
+                f'<img src="{user_pic}" style="border-radius:50%;width:48px;'
+                f'height:48px;display:block;margin:0 auto 0.5rem;">',
+                unsafe_allow_html=True,
+            )
         st.markdown(f"<div style='text-align:center;font-weight:600;color:#C084FC;'>{user_name}</div>", unsafe_allow_html=True)
         st.markdown(f"<div style='text-align:center;font-size:0.75rem;color:#8A7AA0;'>{user_email}</div>", unsafe_allow_html=True)
         st.divider()
@@ -138,11 +206,4 @@ def _show_app() -> None:
 
     inject_css(**THEMES[selected_theme])
     st.title(selected_view)
-    st.divider()
-    dispatch(selected_view)
-
-
-if st.session_state.get("logged_in"):
-    _show_app()
-else:
-    _show_login()
+    st.divider(
