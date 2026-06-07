@@ -23,7 +23,6 @@ st.set_page_config(
 
 
 def _show_login() -> None:
-    """Pantalla de login con Google OAuth."""
     inject_css(**THEMES["Merlin Premium"])
 
     st.markdown("""
@@ -38,25 +37,16 @@ def _show_login() -> None:
         border-radius: 20px;
         box-shadow: 0 20px 60px #7B5EA722;
     }
-    .login-logo {
-        font-size: 4rem;
-        margin-bottom: 0.5rem;
-    }
+    .login-logo { font-size: 4rem; margin-bottom: 0.5rem; }
     .login-title {
-        font-size: 2rem;
-        font-weight: 900;
+        font-size: 2rem; font-weight: 900;
         background: linear-gradient(135deg, #7B5EA7, #C084FC);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
         margin-bottom: 0.3rem;
     }
-    .login-subtitle {
-        font-size: 0.9rem;
-        color: #8A7AA0;
-        margin-bottom: 2rem;
-        letter-spacing: 0.1em;
-    }
+    .login-subtitle { font-size: 0.9rem; color: #8A7AA0; margin-bottom: 2rem; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -78,25 +68,25 @@ def _show_login() -> None:
 
             client_id     = os.environ.get("GOOGLE_CLIENT_ID", "")
             client_secret = os.environ.get("GOOGLE_CLIENT_SECRET", "")
+            redirect_uri  = os.environ.get("REDIRECT_URI", "http://localhost:8501")
 
             if not client_id or not client_secret:
-                st.error("❌ GOOGLE_CLIENT_ID o GOOGLE_CLIENT_SECRET no configurados en Secrets.")
-                st.info("Configura las credenciales de Google OAuth en Streamlit Cloud → Settings → Secrets")
+                st.error("❌ Credenciales Google OAuth no configuradas en Secrets.")
                 return
 
             oauth2 = OAuth2Component(
-                client_id=client_id,
-                client_secret=client_secret,
-                authorize_endpoint="https://accounts.google.com/o/oauth2/auth",
-                token_endpoint="https://oauth2.googleapis.com/token",
-                refresh_token_endpoint="https://oauth2.googleapis.com/token",
-                revoke_token_endpoint="https://oauth2.googleapis.com/revoke",
+                client_id,
+                client_secret,
+                "https://accounts.google.com/o/oauth2/auth",
+                "https://oauth2.googleapis.com/token",
+                "https://oauth2.googleapis.com/token",
+                "https://oauth2.googleapis.com/revoke",
             )
 
             result = oauth2.authorize_button(
                 name="Continuar con Google",
                 icon="https://www.google.com/favicon.ico",
-                redirect_uri=os.environ.get("REDIRECT_URI", "http://localhost:8501"),
+                redirect_uri=redirect_uri,
                 scope="openid email profile",
                 key="google_oauth",
                 use_container_width=True,
@@ -104,7 +94,7 @@ def _show_login() -> None:
 
             if result and "token" in result:
                 import jwt as pyjwt
-                token = result["token"]
+                token    = result["token"]
                 id_token = token.get("id_token", "")
                 if id_token:
                     payload = pyjwt.decode(id_token, options={"verify_signature": False})
@@ -114,23 +104,21 @@ def _show_login() -> None:
                     st.session_state["logged_in"]  = True
                     st.rerun()
 
-        except ImportError:
-            st.error("❌ Paquete streamlit-oauth no instalado.")
+        except Exception as e:
+            st.error(f"❌ Error OAuth: {e}")
 
         st.divider()
         st.caption("Al acceder aceptas los términos de uso de Merlín AI.")
 
 
 def _show_app() -> None:
-    """App principal — solo visible tras login."""
     init_session()
 
-    user_name = st.session_state.get("user_name", "Usuario")
-    user_pic  = st.session_state.get("user_pic", "")
+    user_name  = st.session_state.get("user_name", "Usuario")
+    user_pic   = st.session_state.get("user_pic", "")
     user_email = st.session_state.get("user_email", "")
 
     with st.sidebar:
-        # Perfil usuario
         if user_pic:
             st.markdown(f'<img src="{user_pic}" style="border-radius:50%;width:48px;height:48px;display:block;margin:0 auto 0.5rem;">', unsafe_allow_html=True)
         st.markdown(f"<div style='text-align:center;font-weight:600;color:#C084FC;'>{user_name}</div>", unsafe_allow_html=True)
@@ -155,7 +143,6 @@ def _show_app() -> None:
     dispatch(selected_view)
 
 
-# ── Punto de entrada ──────────────────────────────────────
 if st.session_state.get("logged_in"):
     _show_app()
 else:
