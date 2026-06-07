@@ -10,7 +10,5 @@ python-dateutil==2.9.0
 fastapi==0.115.12
 uvicorn==0.34.2
 fal-client==0.5.9
-streamlit-oauth==0.1.4
-PyJWT==2.8.0
-streamlit-oauth==0.1.4
+streamlit-oauth==0.1.6
 PyJWT==2.8.0
