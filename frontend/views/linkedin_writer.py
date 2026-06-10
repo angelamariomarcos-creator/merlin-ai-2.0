@@ -72,12 +72,19 @@ def render() -> None:
     st.caption("Posts profesionales optimizados para engagement · Coste cero")
     st.divider()
 
+    # Recoge el prompt inyectado desde El Intérprete si existe
+    topic_inyectado = st.session_state.pop("linkedin_topic", "")
+
     topic = st.text_area(
         "¿Sobre qué quieres escribir?",
+        value=topic_inyectado,
         placeholder="ej: Cómo la IA está cambiando el comercio tradicional...",
         height=80,
         key="linkedin_topic",
     )
+
+    if topic_inyectado:
+        st.info("✨ Prompt optimizado por El Intérprete · Listo para generar")
 
     c1, c2 = st.columns(2)
     tone = c1.selectbox(
