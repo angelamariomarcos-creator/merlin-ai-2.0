@@ -208,14 +208,11 @@ def _show_app() -> None:
 
 
 # --- FLUJO DE CONTROL PRINCIPAL ---
-# CRÍTICO: en Streamlit Cloud el módulo se importa, no se ejecuta como __main__
-# El código debe estar en el nivel raíz, fuera del if __name__ == "__main__"
-
-# 1. Primero procesar callback OAuth si viene con ?code=
 if not st.session_state.get("logged_in", False):
-    if _handle_oauth_callback():
-        st.rerun()
-    else:
-        _show_login()
+    st.session_state["logged_in"] = True
+    st.session_state["user_name"] = "Javi"
+    st.session_state["user_email"] = "demo@merlin.ai"
+    st.session_state["user_pic"] = ""
+    st.rerun()
 else:
     _show_app()
