@@ -147,7 +147,7 @@ def render() -> None:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── DOS COLUMNAS: CONTEXTO + CONSOLA ─────────────────────────
+    # ── DOS COLUMNAS ─────────────────────────────────────────────
     col1, col2 = st.columns([1.1, 0.9], gap="large")
 
     with col1:
@@ -169,8 +169,12 @@ def render() -> None:
     with col2:
         st.markdown("##### 🕹️ Consola de Optimización")
 
-        # Puede venir precargado desde otro módulo
         prompt_inicial = st.session_state.pop("interprete_input", "")
+
+        # Tipo preseleccionado si viene de otro módulo
+        tipo_presel = st.session_state.get("interprete_tipo", "🤖 Claude / LLM")
+        tipo_opciones = ["🤖 Claude / LLM", "🎨 Imagen (FLUX)", "🎬 Video AI", "✍️ LinkedIn"]
+        tipo_idx = tipo_opciones.index(tipo_presel) if tipo_presel in tipo_opciones else 0
 
         prompt_usuario = st.text_area(
             "Introduce tu idea en bruto:",
@@ -181,12 +185,12 @@ def render() -> None:
             key="interprete_prompt",
         )
 
-        # Tipo de optimización
         tipo = st.radio(
             "Optimizar para:",
-            ["🤖 Claude / LLM", "🎨 Imagen (FLUX)", "✍️ LinkedIn"],
+            tipo_opciones,
+            index=tipo_idx,
             horizontal=True,
-            key="interprete_tipo",
+            key="interprete_tipo_radio",
         )
 
         boton_ejecutar = st.button("🧠 Procesar e Inyectar Estructura RCTC", use_container_width=True, type="primary")
@@ -198,7 +202,6 @@ def render() -> None:
         if not prompt_usuario.strip():
             st.warning("El campo de texto no puede estar vacío.")
         else:
-            # Intentar GEMINI_API_KEY de Secrets primero
             api_key = os.environ.get("GEMINI_API_KEY", "")
 
             if not api_key:
@@ -209,9 +212,10 @@ def render() -> None:
                         client = Client(api_key=api_key)
 
                         tipo_contexto = {
-                            "🤖 Claude / LLM": "modelo de lenguaje Claude 3.5 Sonnet",
-                            "🎨 Imagen (FLUX)": "modelo de generación de imágenes FLUX Dev",
-                            "✍️ LinkedIn": "redacción de posts profesionales en LinkedIn",
+                            "🤖 Claude / LLM":  "modelo de lenguaje Claude 3.5 Sonnet",
+                            "🎨 Imagen (FLUX)":  "modelo de generación de imágenes FLUX Dev",
+                            "🎬 Video AI":        "modelo de generación de video SeedAnce, enfocado en prompts de movimiento cinemático",
+                            "✍️ LinkedIn":        "redacción de posts profesionales en LinkedIn",
                         }.get(tipo, "modelo de lenguaje")
 
                         instrucciones_experto = f"""Eres un Ingeniero de Prompts Senior especializado en {tipo_contexto}.
@@ -231,7 +235,7 @@ Responde ÚNICAMENTE con estos dos bloques, en este orden exacto, sin texto adic
 El prompt estructurado siguiendo RCTC, listo para copiar y usar.
 
 [CONSEJOS]
-Lista de 3 a 5 puntos concretos explicando qué tenía el prompt original que generaba desperdicio de tokens y cómo lo has corregido. Sé específico, no genérico."""
+Lista de 3 a 5 puntos concretos explicando qué tenía el prompt original que generaba ineficiencia y cómo lo has corregido. Sé específico, no genérico."""
 
                         response = client.models.generate_content(
                             model='gemini-2.5-flash',
@@ -244,7 +248,6 @@ Lista de 3 a 5 puntos concretos explicando qué tenía el prompt original que ge
 
                         texto_respuesta = response.text.strip()
 
-                        # ── PARSEO CON FALLBACK EXPLÍCITO ──
                         if "[PROMPT_FINAL]" in texto_respuesta and "[CONSEJOS]" in texto_respuesta:
                             partes = texto_respuesta.split("[CONSEJOS]")
                             prompt_final = partes[0].replace("[PROMPT_FINAL]", "").strip()
@@ -255,7 +258,6 @@ Lista de 3 a 5 puntos concretos explicando qué tenía el prompt original que ge
                             consejos_final = None
                             parse_ok = False
 
-                        # ── MÉTRICAS DE AHORRO ──
                         tokens_orig = estimar_tokens(prompt_usuario)
                         tokens_opt  = estimar_tokens(prompt_final)
                         metricas    = calcular_ahorro(tokens_orig, tokens_opt)
@@ -286,17 +288,23 @@ Lista de 3 a 5 puntos concretos explicando qué tenía el prompt original que ge
                         with tab1:
                             st.code(prompt_final, language="text")
 
-                            # ── BOTONES DE USO DIRECTO ──
+                            # ── BOTONES DE ENVÍO DINÁMICOS ──
                             st.markdown("**Enviar directamente a:**")
-                            c1, c2 = st.columns(2)
+                            c1, c2, c3 = st.columns(3)
+
                             with c1:
                                 if st.button("🎨 Generador de Imágenes", use_container_width=True):
                                     st.session_state["selected_panic_prompt"] = prompt_final
                                     st.session_state["vista"] = "🎨 Generador de Imagenes"
                                     st.rerun()
                             with c2:
+                                if st.button("🎬 Video AI", use_container_width=True):
+                                    st.session_state["video_prompt_inject"] = prompt_final
+                                    st.session_state["vista"] = "🎬 Video AI"
+                                    st.rerun()
+                            with c3:
                                 if st.button("✍️ Redactor LinkedIn", use_container_width=True):
-                                    st.session_state["linkedin_topic"] = prompt_final
+                                    st.session_state["linkedin_topic_inject"] = prompt_final
                                     st.session_state["vista"] = "✍️ Redactor LinkedIn"
                                     st.rerun()
 

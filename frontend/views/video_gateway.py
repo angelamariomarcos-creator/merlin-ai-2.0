@@ -98,7 +98,6 @@ def render() -> None:
             """)
             st.info("💳 Integración con Stripe próximamente. Contacta para acceso anticipado.")
 
-            # Botón demo para testing (quitar en producción)
             if os.environ.get("DEMO_MODE", "false").lower() == "true":
                 if st.button("🧪 Activar modo demo (testing)"):
                     st.session_state.is_premium = True
@@ -143,12 +142,33 @@ def render() -> None:
         st.image(image_url, width=300)
 
     st.divider()
+
+    # ── Prompt de movimiento + botón El Intérprete ────────
+    prompt_inyectado = st.session_state.pop("video_prompt_inject", "")
+
+    col_prompt, col_btn = st.columns([3, 1])
+    with col_prompt:
+        st.markdown("**Prompt de movimiento**")
+    with col_btn:
+        if st.button("🧠 Optimizar con El Intérprete", use_container_width=True, help="Mejora tu prompt con RCTC"):
+            prompt_actual = st.session_state.get("video_prompt", "")
+            st.session_state["interprete_input"] = prompt_actual
+            st.session_state["interprete_tipo"] = "imagen"
+            # Guardar la vista de vuelta para que El Intérprete sepa dónde devolver
+            st.session_state["interprete_return"] = "🎬 Video AI"
+            st.session_state["vista"] = "🧠 El Intérprete"
+            st.rerun()
+
     prompt = st.text_area(
         "Prompt de movimiento",
+        value=prompt_inyectado,
         placeholder="Camera slowly zooms in, gentle wind moves the hair, cinematic...",
         height=80,
         key="video_prompt",
     )
+
+    if prompt_inyectado:
+        st.info("✨ Prompt optimizado por El Intérprete · Listo para generar")
 
     if st.button("🎬 Generar video", use_container_width=True):
         if not image_url:
