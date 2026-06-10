@@ -2,7 +2,6 @@
 import sys
 import os
 
-# Forzar a Python a incluir la raíz del proyecto en las búsquedas de módulos de inmediato
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import requests
@@ -21,9 +20,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-GOOGLE_AUTH_URL   = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL  = "https://oauth2.googleapis.com/token"
-GOOGLE_USERINFO   = "https://www.googleapis.com/oauth2/v3/userinfo"
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 
 def _get_oauth_config():
@@ -66,8 +65,8 @@ def _get_user_info(access_token: str) -> dict:
     return resp.json()
 
 
-def _handle_oauth_callback():
-    """Procesa el código OAuth que llega en los query params tras el redirect."""
+def _handle_oauth_callback() -> bool:
+    """Procesa el código OAuth. Devuelve True si el login fue exitoso."""
     params = st.query_params
     code  = params.get("code", "")
     error = params.get("error", "")
@@ -75,19 +74,21 @@ def _handle_oauth_callback():
     if error:
         st.error(f"❌ Google denegó el acceso: {error}")
         st.query_params.clear()
-        return
+        return False
 
     if not code:
-        return
+        return False
 
     cfg = _get_oauth_config()
     try:
-        token_data  = _exchange_code_for_token(code, cfg)
-        access_token = token_data.get("access_token", "")
+        with st.spinner("Autenticando con Google..."):
+            token_data   = _exchange_code_for_token(code, cfg)
+            access_token = token_data.get("access_token", "")
+
         if not access_token:
             st.error("❌ No se recibió access_token de Google.")
             st.query_params.clear()
-            return
+            return False
 
         user = _get_user_info(access_token)
         st.session_state["user_email"] = user.get("email", "")
@@ -95,18 +96,16 @@ def _handle_oauth_callback():
         st.session_state["user_pic"]   = user.get("picture", "")
         st.session_state["logged_in"]  = True
         st.query_params.clear()
-        st.rerun()
+        return True
 
     except Exception as e:
         st.error(f"❌ Error al autenticar: {e}")
         st.query_params.clear()
+        return False
 
 
 def _show_login() -> None:
     inject_css(**THEMES["Merlin Premium"])
-
-    # Procesar callback OAuth si viene con ?code=
-    _handle_oauth_callback()
 
     st.markdown("""
     <style>
@@ -205,14 +204,18 @@ def _show_app() -> None:
     inject_css(**THEMES[selected_theme])
     st.title(selected_view)
     st.divider()
-    
-    # Renderizar la vista seleccionada usando el despachador
     dispatch(selected_view)
 
 
 # --- FLUJO DE CONTROL PRINCIPAL ---
-if __name__ == "__main__":
-    if not st.session_state.get("logged_in", False):
-        _show_login()
+# CRÍTICO: en Streamlit Cloud el módulo se importa, no se ejecuta como __main__
+# El código debe estar en el nivel raíz, fuera del if __name__ == "__main__"
+
+# 1. Primero procesar callback OAuth si viene con ?code=
+if not st.session_state.get("logged_in", False):
+    if _handle_oauth_callback():
+        st.rerun()
     else:
-        _show_app()
+        _show_login()
+else:
+    _show_app()
