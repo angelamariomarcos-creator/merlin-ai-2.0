@@ -5,6 +5,7 @@ REGISTRY_MAP = {
     "🏠 Inicio":                  ("frontend.views.landing",         "render"),
     "🛸 Dashboard":               ("frontend.views.dashboard",        "render"),
     "🎨 Generador de Imagenes":   ("frontend.views.image_generator",  "render"),
+    "🧠 El Intérprete":           ("frontend.views.interprete",       "render"),
     "🎬 Video AI":                ("frontend.views.video_gateway",    "render"),
     "🔍 Reescalado 4K":           ("frontend.views.upscaler",         "render"),
     "📈 Inteligencia de Mercado": ("frontend.views.market_intel",     "render"),
