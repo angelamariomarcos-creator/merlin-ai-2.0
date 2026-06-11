@@ -1,6 +1,7 @@
 # frontend/app.py
 import sys
 import os
+from pathlib import Path
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -19,6 +20,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+ASSETS = Path(__file__).parent.parent / "assets" / "images"
 
 GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
@@ -66,7 +69,6 @@ def _get_user_info(access_token: str) -> dict:
 
 
 def _handle_oauth_callback() -> bool:
-    """Procesa el código OAuth. Devuelve True si el login fue exitoso."""
     params = st.query_params
     code  = params.get("code", "")
     error = params.get("error", "")
@@ -104,73 +106,6 @@ def _handle_oauth_callback() -> bool:
         return False
 
 
-def _show_login() -> None:
-    inject_css(**THEMES["Merlin Premium"])
-
-    st.markdown("""
-    <style>
-    .login-container {
-        max-width: 420px;
-        margin: 8vh auto;
-        text-align: center;
-        padding: 3rem 2rem;
-        background: linear-gradient(135deg, #12122B, #1A0F2E);
-        border: 1px solid #7B5EA755;
-        border-radius: 20px;
-        box-shadow: 0 20px 60px #7B5EA722;
-    }
-    .login-logo { font-size: 4rem; margin-bottom: 0.5rem; }
-    .login-title {
-        font-size: 2rem; font-weight: 900;
-        background: linear-gradient(135deg, #7B5EA7, #C084FC);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-        margin-bottom: 0.3rem;
-    }
-    .login-subtitle { font-size: 0.9rem; color: #8A7AA0; margin-bottom: 2rem; }
-    .google-btn {
-        display: inline-flex; align-items: center; gap: 0.6rem;
-        background: #fff; color: #3c4043;
-        border: 1px solid #dadce0; border-radius: 8px;
-        padding: 0.7rem 1.5rem; font-size: 0.95rem; font-weight: 500;
-        text-decoration: none; cursor: pointer;
-        transition: box-shadow 0.2s;
-        width: 100%; justify-content: center;
-    }
-    .google-btn:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.3); }
-    </style>
-    """, unsafe_allow_html=True)
-
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        st.markdown("""
-        <div class="login-container">
-            <div class="login-logo">🔮</div>
-            <div class="login-title">MERLÍN AI</div>
-            <div class="login-subtitle">Plataforma IA Generativa</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.divider()
-        st.subheader("Acceder a Merlín AI")
-
-        cfg = _get_oauth_config()
-        if not cfg["client_id"] or not cfg["client_secret"]:
-            st.error("❌ Credenciales Google OAuth no configuradas en Secrets.")
-        else:
-            auth_url = _build_auth_url(cfg)
-            st.markdown(
-                f'<a href="{auth_url}" target="_self" class="google-btn">'
-                f'<img src="https://www.google.com/favicon.ico" width="20"/> '
-                f'Continuar con Google</a>',
-                unsafe_allow_html=True,
-            )
-
-        st.divider()
-        st.caption("Al acceder aceptas los términos de uso de Merlín AI.")
-
-
 def _show_app() -> None:
     init_session()
 
@@ -179,6 +114,16 @@ def _show_app() -> None:
     user_email = st.session_state.get("user_email", "")
 
     with st.sidebar:
+        # ── MASCOTA MERLÍN ──────────────────────────────
+        mascota = ASSETS / "merlin 2.0.png"
+        if mascota.exists():
+            st.image(str(mascota), use_container_width=True)
+        else:
+            st.markdown("<div style='text-align:center;font-size:2.5rem;'>🔮</div>", unsafe_allow_html=True)
+
+        st.markdown("---")
+
+        # ── PERFIL DE USUARIO ───────────────────────────
         if user_pic:
             st.markdown(
                 f'<img src="{user_pic}" style="border-radius:50%;width:48px;'
