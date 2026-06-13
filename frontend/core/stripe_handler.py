@@ -2,8 +2,8 @@
 import os
 import stripe
 
-STRIPE_SECRET_KEY      = os.environ.get("STRIPE_SECRET_KEY", "sk_test_51TbCEXCIXI5ct4VClfgwLZc8cYL33GSMQCZJxXUcSAdeUQVVbgZZm7Eslv29rYi4Oz1OkjigNsUQNtYMts4XQaCq00J0bhg5ZZ")
-STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "pk_test_51TbCEXCIXI5ct4VCtr0E541jkBfrjnRKdh2zEGZ2r39QUoGvvQ8j8NeeU1ravdSJZ2mrtS2elMOXuXcUa0Wj52yd003dQJZpEV")
+STRIPE_SECRET_KEY      = os.environ.get("STRIPE_SECRET_KEY", "")
+STRIPE_PUBLISHABLE_KEY = os.environ.get("STRIPE_PUBLISHABLE_KEY", "")
 STRIPE_PRICE_ID        = os.environ.get("STRIPE_PRICE_ID", "price_1ThjHWCIXl5ct4VCmTm2Cyg3")
 
 stripe.api_key = STRIPE_SECRET_KEY
